@@ -1,4 +1,4 @@
-name: Build and Publish Docker image to GHCR
+name: Build and publish image to GHCR and deploy to Vercel
 
 on:
   push:
@@ -12,6 +12,956 @@ permissions:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:latest
+            ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:${{ github.sha }}
+
+      - name: Announce image
+        run: echo "Image published: ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:${{ github.sha }}"
+
+      - name: Configure AWS credentials (optional)
+        if: ${{ secrets.AWS_ACCESS_KEY_ID && secrets.AWS_SECRET_ACCESS_KEY && secrets.AWS_REGION }}
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Upload model to S3 and generate presigned URL (optional)
+        if: ${{ secrets.AWS_ACCESS_KEY_ID && secrets.AWS_SECRET_ACCESS_KEY && secrets.S3_BUCKET }}
+        env:
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+        run: |
+          set -e
+          if [ -f models/code_quality_model.joblib ]; then
+            echo "Uploading model to s3://$S3_BUCKET/code_quality_model.joblib"
+            aws s3 cp models/code_quality_model.joblib s3://$S3_BUCKET/code_quality_model.joblib
+            MODEL_URL=$(aws s3 presign s3://$S3_BUCKET/code_quality_model.joblib --expires-in 604800)
+            echo "MODEL_URL=${MODEL_URL}" >> $GITHUB_ENV
+            echo "MODEL_URL set"
+          else
+            echo "models/code_quality_model.joblib not found - skipping"
+          fi
+
+      - name: Update Vercel MODEL_URL env var (optional)
+        if: ${{ secrets.VERCEL_TOKEN && secrets.VERCEL_PROJECT_ID }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          MODEL_URL: ${{ env.MODEL_URL }}
+        run: |
+          set -e
+          if [ -z "$MODEL_URL" ]; then
+            echo "No MODEL_URL present; nothing to update in Vercel"
+            exit 0
+          fi
+          # Install jq to parse JSON
+          sudo apt-get update && sudo apt-get install -y jq
+          echo "Looking up existing MODEL_URL env var..."
+          EXISTING_ID=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env" | jq -r '.envs[] | select(.key=="MODEL_URL") | .id') || true
+          if [ -n "$EXISTING_ID" ]; then
+            echo "Removing existing MODEL_URL env var: $EXISTING_ID"
+            curl -s -X DELETE -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env/$EXISTING_ID"
+          fi
+          echo "Creating MODEL_URL env var with new presigned URL"
+          # Use safe JSON with here-doc to avoid quoting issues
+          cat > /tmp/vercel_env.json <<EOF
+{ "key": "MODEL_URL", "value": "${MODEL_URL}", "target": ["preview","production"] }
+EOF
+          curl -s -X POST -H "Authorization: Bearer $VERCEL_TOKEN" -H "Content-Type: application/json" --data @/tmp/vercel_env.json "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env"
+
+      - name: Deploy to Vercel (optional)
+        if: ${{ secrets.VERCEL_TOKEN && secrets.VERCEL_PROJECT_ID && secrets.VERCEL_ORG_ID }}
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod --confirm'
+name: Build and publish image to GHCR and deploy to Vercel
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:latest
+            ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:${{ github.sha }}
+
+      - name: Announce image
+        run: echo "Image published: ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:${{ github.sha }}"
+
+      - name: Configure AWS credentials (optional)
+        if: ${{ secrets.AWS_ACCESS_KEY_ID && secrets.AWS_SECRET_ACCESS_KEY && secrets.AWS_REGION }}
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Upload model to S3 and generate presigned URL (optional)
+        if: ${{ secrets.AWS_ACCESS_KEY_ID && secrets.AWS_SECRET_ACCESS_KEY && secrets.S3_BUCKET }}
+        env:
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+        run: |
+          set -e
+          if [ -f models/code_quality_model.joblib ]; then
+            echo "Uploading model to s3://$S3_BUCKET/code_quality_model.joblib"
+            aws s3 cp models/code_quality_model.joblib s3://$S3_BUCKET/code_quality_model.joblib
+            MODEL_URL=$(aws s3 presign s3://$S3_BUCKET/code_quality_model.joblib --expires-in 604800)
+            echo "MODEL_URL=${MODEL_URL}" >> $GITHUB_ENV
+            echo "MODEL_URL set"
+          else
+            echo "models/code_quality_model.joblib not found - skipping"
+          fi
+
+      - name: Update Vercel MODEL_URL env var (optional)
+        if: ${{ secrets.VERCEL_TOKEN && secrets.VERCEL_PROJECT_ID }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          MODEL_URL: ${{ env.MODEL_URL }}
+        run: |
+          set -e
+          if [ -z "$MODEL_URL" ]; then
+            echo "No MODEL_URL present; nothing to update in Vercel"
+            exit 0
+          fi
+          # Install jq to parse JSON
+          sudo apt-get update && sudo apt-get install -y jq
+          echo "Looking up existing MODEL_URL env var..."
+          EXISTING_ID=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env" | jq -r '.envs[] | select(.key=="MODEL_URL") | .id') || true
+          if [ -n "$EXISTING_ID" ]; then
+            echo "Removing existing MODEL_URL env var: $EXISTING_ID"
+            curl -s -X DELETE -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env/$EXISTING_ID"
+          fi
+          echo "Creating MODEL_URL env var with new presigned URL"
+          # Use safe JSON with here-doc to avoid quoting issues
+          cat > /tmp/vercel_env.json <<EOF
+{ "key": "MODEL_URL", "value": "${MODEL_URL}", "target": ["preview","production"] }
+EOF
+          curl -s -X POST -H "Authorization: Bearer $VERCEL_TOKEN" -H "Content-Type: application/json" --data @/tmp/vercel_env.json "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env"
+
+      - name: Deploy to Vercel (optional)
+        if: ${{ secrets.VERCEL_TOKEN && secrets.VERCEL_PROJECT_ID && secrets.VERCEL_ORG_ID }}
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod --confirm'
+name: (legacy) corrupted workflow - DEPRECATED
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs: {}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:latest
+            ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:${{ github.sha }}
+
+      - name: Announce image
+        run: echo "Image published: ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:${{ github.sha }}"
+
+      - name: Configure AWS credentials (optional)
+        if: ${{ secrets.AWS_ACCESS_KEY_ID && secrets.AWS_SECRET_ACCESS_KEY && secrets.AWS_REGION }}
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Upload model to S3 and generate presigned URL (optional)
+        if: ${{ secrets.AWS_ACCESS_KEY_ID && secrets.AWS_SECRET_ACCESS_KEY && secrets.S3_BUCKET }}
+        env:
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+        run: |
+          set -e
+          if [ -f models/code_quality_model.joblib ]; then
+            echo "Uploading model to s3://$S3_BUCKET/code_quality_model.joblib"
+            aws s3 cp models/code_quality_model.joblib s3://$S3_BUCKET/code_quality_model.joblib
+            MODEL_URL=$(aws s3 presign s3://$S3_BUCKET/code_quality_model.joblib --expires-in 604800)
+            echo "MODEL_URL=${MODEL_URL}" >> $GITHUB_ENV
+            echo "MODEL_URL set"
+          else
+            echo "models/code_quality_model.joblib not found - skipping"
+          fi
+
+      - name: Update Vercel MODEL_URL env var (optional)
+        if: ${{ secrets.VERCEL_TOKEN && secrets.VERCEL_PROJECT_ID }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          MODEL_URL: ${{ env.MODEL_URL }}
+        run: |
+          set -e
+          if [ -z "$MODEL_URL" ]; then
+            echo "No MODEL_URL present; nothing to update in Vercel"
+            exit 0
+          fi
+          # Install jq to parse JSON
+          sudo apt-get update && sudo apt-get install -y jq
+          echo "Looking up existing MODEL_URL env var..."
+          EXISTING_ID=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env" | jq -r '.envs[] | select(.key=="MODEL_URL") | .id') || true
+          if [ -n "$EXISTING_ID" ]; then
+            echo "Removing existing MODEL_URL env var: $EXISTING_ID"
+            curl -s -X DELETE -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env/$EXISTING_ID"
+          fi
+          echo "Creating MODEL_URL env var with new presigned URL"
+          # Use safe JSON with here-doc to avoid quoting issues
+          cat > /tmp/vercel_env.json <<EOF
+{ "key": "MODEL_URL", "value": "${MODEL_URL}", "target": ["preview","production"] }
+EOF
+          curl -s -X POST -H "Authorization: Bearer $VERCEL_TOKEN" -H "Content-Type: application/json" --data @/tmp/vercel_env.json "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env"
+
+      - name: Deploy to Vercel (optional)
+        if: ${{ secrets.VERCEL_TOKEN && secrets.VERCEL_PROJECT_ID && secrets.VERCEL_ORG_ID }}
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod --confirm'
+name: Build and publish image to GHCR and deploy to Vercel
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:latest
+            ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:${{ github.sha }}
+
+      - name: Announce image
+        run: echo "Image published: ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:${{ github.sha }}"
+
+      - name: Configure AWS credentials (optional)
+        if: ${{ secrets.AWS_ACCESS_KEY_ID && secrets.AWS_SECRET_ACCESS_KEY && secrets.AWS_REGION }}
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Upload model to S3 and generate presigned URL (optional)
+        if: ${{ secrets.AWS_ACCESS_KEY_ID && secrets.AWS_SECRET_ACCESS_KEY && secrets.S3_BUCKET }}
+        env:
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+        run: |
+          set -e
+          if [ -f models/code_quality_model.joblib ]; then
+            echo "Uploading model to s3://$S3_BUCKET/code_quality_model.joblib"
+            aws s3 cp models/code_quality_model.joblib s3://$S3_BUCKET/code_quality_model.joblib
+            MODEL_URL=$(aws s3 presign s3://$S3_BUCKET/code_quality_model.joblib --expires-in 604800)
+            echo "MODEL_URL=${MODEL_URL}" >> $GITHUB_ENV
+            echo "MODEL_URL set"
+          else
+            echo "models/code_quality_model.joblib not found - skipping"
+          fi
+
+      - name: Update Vercel MODEL_URL env var (optional)
+        if: ${{ secrets.VERCEL_TOKEN && secrets.VERCEL_PROJECT_ID }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          MODEL_URL: ${{ env.MODEL_URL }}
+        run: |
+          set -e
+          if [ -z "$MODEL_URL" ]; then
+            echo "No MODEL_URL present; nothing to update in Vercel"
+            exit 0
+          fi
+          # Install jq to parse JSON
+          sudo apt-get update && sudo apt-get install -y jq
+          echo "Looking up existing MODEL_URL env var..."
+          EXISTING_ID=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env" | jq -r '.envs[] | select(.key=="MODEL_URL") | .id') || true
+          if [ -n "$EXISTING_ID" ]; then
+            echo "Removing existing MODEL_URL env var: $EXISTING_ID"
+            curl -s -X DELETE -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env/$EXISTING_ID"
+          fi
+          echo "Creating MODEL_URL env var with new presigned URL"
+          # Use safe JSON with here-doc to avoid quoting issues
+          cat > /tmp/vercel_env.json <<EOF
+{ "key": "MODEL_URL", "value": "${MODEL_URL}", "target": ["preview","production"] }
+EOF
+          curl -s -X POST -H "Authorization: Bearer $VERCEL_TOKEN" -H "Content-Type: application/json" --data @/tmp/vercel_env.json "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env"
+
+      - name: Deploy to Vercel (optional)
+        if: ${{ secrets.VERCEL_TOKEN && secrets.VERCEL_PROJECT_ID && secrets.VERCEL_ORG_ID }}
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod --confirm'
+name: Build and publish image to GHCR and deploy to Vercel
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:latest
+            ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:${{ github.sha }}
+
+      - name: Announce image
+        run: echo "Image published: ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:${{ github.sha }}"
+
+      - name: Configure AWS credentials (optional)
+        if: ${{ secrets.AWS_ACCESS_KEY_ID && secrets.AWS_SECRET_ACCESS_KEY && secrets.AWS_REGION }}
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Upload model to S3 and generate presigned URL (optional)
+        if: ${{ secrets.AWS_ACCESS_KEY_ID && secrets.AWS_SECRET_ACCESS_KEY && secrets.S3_BUCKET }}
+        env:
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+        run: |
+          set -e
+          if [ -f models/code_quality_model.joblib ]; then
+            echo "Uploading model to s3://$S3_BUCKET/code_quality_model.joblib"
+            aws s3 cp models/code_quality_model.joblib s3://$S3_BUCKET/code_quality_model.joblib
+            MODEL_URL=$(aws s3 presign s3://$S3_BUCKET/code_quality_model.joblib --expires-in 604800)
+            echo "MODEL_URL=${MODEL_URL}" >> $GITHUB_ENV
+            echo "MODEL_URL set"
+          else
+            echo "models/code_quality_model.joblib not found - skipping"
+          fi
+
+      - name: Update Vercel MODEL_URL env var (optional)
+        if: ${{ secrets.VERCEL_TOKEN && secrets.VERCEL_PROJECT_ID }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          MODEL_URL: ${{ env.MODEL_URL }}
+        run: |
+          set -e
+          if [ -z "$MODEL_URL" ]; then
+            echo "No MODEL_URL present; nothing to update in Vercel"
+            exit 0
+          fi
+          # Install jq to parse JSON
+          sudo apt-get update && sudo apt-get install -y jq
+          echo "Looking up existing MODEL_URL env var..."
+          EXISTING_ID=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env" | jq -r '.envs[] | select(.key=="MODEL_URL") | .id') || true
+          if [ -n "$EXISTING_ID" ]; then
+            echo "Removing existing MODEL_URL env var: $EXISTING_ID"
+            curl -s -X DELETE -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env/$EXISTING_ID"
+          fi
+          echo "Creating MODEL_URL env var with new presigned URL"
+          # Use safe JSON with here-doc to avoid quoting issues
+          cat > /tmp/vercel_env.json <<EOF
+{ "key": "MODEL_URL", "value": "${MODEL_URL}", "target": ["preview","production"] }
+EOF
+          curl -s -X POST -H "Authorization: Bearer $VERCEL_TOKEN" -H "Content-Type: application/json" --data @/tmp/vercel_env.json "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env"
+
+      - name: Deploy to Vercel (optional)
+        if: ${{ secrets.VERCEL_TOKEN && secrets.VERCEL_PROJECT_ID && secrets.VERCEL_ORG_ID }}
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod --confirm'
+name: Build and publish image to GHCR and deploy to Vercel
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:latest
+            ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:${{ github.sha }}
+
+      - name: Configure AWS (optional for S3 model upload)
+        if: ${{ secrets.AWS_ACCESS_KEY_ID && secrets.AWS_SECRET_ACCESS_KEY && secrets.AWS_REGION }}
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Upload model to S3 & presign URL (optional)
+        if: ${{ secrets.AWS_ACCESS_KEY_ID && secrets.AWS_SECRET_ACCESS_KEY && secrets.S3_BUCKET }}
+        env:
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+        run: |
+          set -e
+          if [ -f models/code_quality_model.joblib ]; then
+            aws s3 cp models/code_quality_model.joblib s3://$S3_BUCKET/code_quality_model.joblib
+            MODEL_URL=$(aws s3 presign s3://$S3_BUCKET/code_quality_model.joblib --expires-in 604800)
+            echo "MODEL_URL=$MODEL_URL" >> $GITHUB_ENV
+            echo "MODEL_URL set"
+          else
+            echo "No model file - skipping S3 upload"
+          fi
+
+      - name: Deploy to Vercel with ENV update (optional)
+        if: ${{ secrets.VERCEL_TOKEN && secrets.VERCEL_PROJECT_ID }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          MODEL_URL: ${{ env.MODEL_URL }}
+        run: |
+          set -e
+          if [ -n "$MODEL_URL" ]; then
+            echo "Updating Vercel MODEL_URL env to $MODEL_URL"
+            sudo apt-get update && sudo apt-get install -y jq
+            # remove existing env var
+            EXISTING=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env" | jq -r '.envs[] | select(.key=="MODEL_URL") | .id') || true
+            if [ -n "$EXISTING" ]; then
+              curl -s -X DELETE -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env/$EXISTING"
+            fi
+            # create new
+            curl -s -X POST -H "Authorization: Bearer $VERCEL_TOKEN" -H "Content-Type: application/json" --data '{"key":"MODEL_URL","value":"'name: Build and Publish Docker image to GHCR and optionally deploy to Vercel
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:latest
+            ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:${{ github.sha }}
+
+      - name: Announce image
+        run: echo "Image published: ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:${{ github.sha }}"
+
+      - name: Configure AWS credentials (optional)
+        if: ${{ secrets.AWS_ACCESS_KEY_ID && secrets.AWS_SECRET_ACCESS_KEY && secrets.AWS_REGION }}
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Upload model to S3 and generate presigned URL (optional)
+        if: ${{ secrets.AWS_ACCESS_KEY_ID && secrets.AWS_SECRET_ACCESS_KEY && secrets.S3_BUCKET }}
+        env:
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+        run: |
+          set -e
+          if [ -f models/code_quality_model.joblib ]; then
+            echo "Uploading model to s3://$S3_BUCKET/code_quality_model.joblib"
+            aws s3 cp models/code_quality_model.joblib s3://$S3_BUCKET/code_quality_model.joblib
+            MODEL_URL=$(aws s3 presign s3://$S3_BUCKET/code_quality_model.joblib --expires-in 604800)
+            echo "MODEL_URL=${MODEL_URL}" >> $GITHUB_ENV
+            echo "MODEL_URL set"
+          else
+            echo "models/code_quality_model.joblib not found - skipping"
+          fi
+
+      - name: Update Vercel MODEL_URL env var (optional)
+        if: ${{ secrets.VERCEL_TOKEN && secrets.VERCEL_PROJECT_ID }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          MODEL_URL: ${{ env.MODEL_URL }}
+        run: |
+          set -e
+          if [ -z "$MODEL_URL" ]; then
+            echo "No MODEL_URL present; nothing to update in Vercel"
+            exit 0
+          fi
+          sudo apt-get update && sudo apt-get install -y jq
+          echo "Looking up existing MODEL_URL env var..."
+          EXISTING_ID=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env" | jq -r '.envs[] | select(.key=="MODEL_URL") | .id') || true
+          if [ -n "$EXISTING_ID" ]; then
+            echo "Removing existing MODEL_URL env var: $EXISTING_ID"
+            curl -s -X DELETE -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env/$EXISTING_ID"
+          fi
+          echo "Creating MODEL_URL env var with new presigned URL"
+          curl -s -X POST -H "Authorization: Bearer $VERCEL_TOKEN" -H "Content-Type: application/json" --data '{"key":"MODEL_URL","value":"'name: Build and Publish Docker image to GHCR and optionally deploy to Vercel
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:latest
+            ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:${{ github.sha }}
+
+      - name: Announce image
+        run: echo "Image published: ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:${{ github.sha }}"
+
+      - name: Configure AWS credentials (optional)
+        if: ${{ secrets.AWS_ACCESS_KEY_ID && secrets.AWS_SECRET_ACCESS_KEY && secrets.AWS_REGION }}
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Upload model to S3 and generate presigned URL (optional)
+        if: ${{ secrets.AWS_ACCESS_KEY_ID && secrets.AWS_SECRET_ACCESS_KEY && secrets.S3_BUCKET }}
+        env:
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+        run: |
+          set -e
+          if [ -f models/code_quality_model.joblib ]; then
+            echo "Uploading model to s3://$S3_BUCKET/code_quality_model.joblib"
+            aws s3 cp models/code_quality_model.joblib s3://$S3_BUCKET/code_quality_model.joblib
+            MODEL_URL=$(aws s3 presign s3://$S3_BUCKET/code_quality_model.joblib --expires-in 604800)
+            echo "MODEL_URL=${MODEL_URL}" >> $GITHUB_ENV
+            echo "MODEL_URL set"
+          else
+            echo "models/code_quality_model.joblib not found - skipping"
+          fi
+
+      - name: Update Vercel MODEL_URL env var (optional)
+        if: ${{ secrets.VERCEL_TOKEN && secrets.VERCEL_PROJECT_ID }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          MODEL_URL: ${{ env.MODEL_URL }}
+        run: |
+          set -e
+          if [ -z "$MODEL_URL" ]; then
+            echo "No MODEL_URL present; nothing to update in Vercel"
+            exit 0
+          fi
+          sudo apt-get update && sudo apt-get install -y jq
+          echo "Looking up existing MODEL_URL env var..."
+          EXISTING_ID=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env" | jq -r '.envs[] | select(.key=="MODEL_URL") | .id') || true
+          if [ -n "$EXISTING_ID" ]; then
+            echo "Removing existing MODEL_URL env var: $EXISTING_ID"
+            curl -s -X DELETE -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env/$EXISTING_ID"
+          fi
+          echo "Creating MODEL_URL env var with new presigned URL"
+          curl -s -X POST -H "Authorization: Bearer $VERCEL_TOKEN" -H "Content-Type: application/json" --data '{"key":"MODEL_URL","value":"'name: Build and Publish Docker image to GHCR and deploy to Vercel
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:latest
+            ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:${{ github.sha }}
+
+      - name: Announce image
+        run: echo "Image published: ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:${{ github.sha }}"
+
+      - name: Configure AWS credentials (optional; required for model upload)
+        if: ${{ secrets.AWS_ACCESS_KEY_ID && secrets.AWS_SECRET_ACCESS_KEY && secrets.AWS_REGION }}
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Upload model to S3 and generate presigned URL (optional)
+        if: ${{ secrets.AWS_ACCESS_KEY_ID && secrets.AWS_SECRET_ACCESS_KEY && secrets.S3_BUCKET }}
+        env:
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+        run: |
+          if [ -f models/code_quality_model.joblib ]; then
+            echo "Uploading model to s3://$S3_BUCKET/code_quality_model.joblib"
+            aws s3 cp models/code_quality_model.joblib s3://$S3_BUCKET/code_quality_model.joblib
+            MODEL_URL=$(aws s3 presign s3://$S3_BUCKET/code_quality_model.joblib --expires-in 604800)
+            echo "MODEL_URL=${MODEL_URL}" >> $GITHUB_ENV
+            echo "MODEL_URL set"
+          else
+            echo "models/code_quality_model.joblib not found - skipping"
+          fi
+
+      - name: Update Vercel MODEL_URL env var (optional)
+        if: ${{ secrets.VERCEL_TOKEN && secrets.VERCEL_PROJECT_ID }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          MODEL_URL: ${{ env.MODEL_URL }}
+        run: |
+          if [ -z "$MODEL_URL" ]; then
+            echo "No MODEL_URL present; nothing to update in Vercel"
+            exit 0
+          fi
+          sudo apt-get update && sudo apt-get install -y jq
+          echo "Checking for existing MODEL_URL env var..."
+          EXISTING_ID=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env" | jq -r '.envs[] | select(.key=="MODEL_URL") | .id')
+          if [ -n "$EXISTING_ID" ]; then
+            echo "Removing existing MODEL_URL env var: $EXISTING_ID"
+            curl -s -X DELETE -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env/$EXISTING_ID"
+          fi
+          echo "Creating MODEL_URL env var with new presigned URL"
+          curl -s -X POST -H "Authorization: Bearer $VERCEL_TOKEN" -H "Content-Type: application/json" --data '{"key":"MODEL_URL","value":"'name: Build and Publish Docker image to GHCR and deploy to Vercel
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:latest
+            ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:${{ github.sha }}
+
+      - name: Announce image
+        run: echo "Image published: ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:${{ github.sha }}"
+
+      - name: Configure AWS credentials (optional, for model upload)
+        if: ${{ secrets.AWS_ACCESS_KEY_ID && secrets.AWS_SECRET_ACCESS_KEY && secrets.AWS_REGION }}
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Upload model to S3 and generate presigned URL (optional)
+        if: ${{ secrets.AWS_ACCESS_KEY_ID && secrets.AWS_SECRET_ACCESS_KEY && secrets.S3_BUCKET }}
+        env:
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+        run: |
+          if [ -f models/code_quality_model.joblib ]; then
+            echo "Uploading model to s3://$S3_BUCKET/code_quality_model.joblib"
+            aws s3 cp models/code_quality_model.joblib s3://$S3_BUCKET/code_quality_model.joblib
+            MODEL_URL=$(aws s3 presign s3://$S3_BUCKET/code_quality_model.joblib --expires-in 604800)
+            echo "MODEL_URL=${MODEL_URL}" >> $GITHUB_ENV
+            echo "MODEL_URL set"
+          else
+            echo "models/code_quality_model.joblib not found - skipping"
+          fi
+
+      - name: Update Vercel MODEL_URL env var (optional)
+        if: ${{ secrets.VERCEL_TOKEN && secrets.VERCEL_PROJECT_ID }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          MODEL_URL: ${{ env.MODEL_URL }}
+        run: |
+          if [ -z "$MODEL_URL" ]; then
+            echo "No MODEL_URL present; nothing to update in Vercel"
+            exit 0
+          fi
+          sudo apt-get update && sudo apt-get install -y jq
+          echo "Looking up existing envs..."
+          EXISTING_ID=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env" | jq -r '.envs[] | select(.key=="MODEL_URL") | .id')
+          if [ -n "$EXISTING_ID" ]; then
+            echo "Removing existing MODEL_URL env var"
+            curl -s -X DELETE -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env/$EXISTING_ID"
+          fi
+          echo "Adding new MODEL_URL env var"
+          curl -s -X POST -H "Authorization: Bearer $VERCEL_TOKEN" -H "Content-Type: application/json" --data '{"key":"MODEL_URL","value":"'name: Build and Publish Docker image to GHCR
+
+        run: |
+          if [ -z "$MODEL_URL" ]; then
+            echo "No MODEL_URL, skipping Vercel env update"
+            exit 0
+          fi
+          echo "Updating Vercel env var MODEL_URL"
+          # Install jq to parse JSON
+          sudo apt-get update && sudo apt-get install -y jq
+          # Delete existing env var if exists
+          ENV_ID=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env" | jq -r '.envs[] | select(.key=="MODEL_URL") | .id')
+          if [ -n "$ENV_ID" ]; then
+            curl -s -X DELETE -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env/$ENV_ID"
+          fi
+          # Create new env var with presigned MODEL_URL
+          curl -s -X POST -H "Authorization: Bearer $VERCEL_TOKEN" -H "Content-Type: application/json" --data '{"key":"MODEL_URL","value":"'"$MODEL_URL"'","target":["production"]}' "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env"
+      - name: Deploy to Vercel
+        if: ${{ secrets.VERCEL_TOKEN != '' }}
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod --confirm'
     steps:
       - uses: actions/checkout@v4
 
@@ -40,6 +990,48 @@ jobs:
 
       - name: Image Published
         run: echo "Image published: ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:${{ github.sha }}"
+
+      - name: Upload model to S3 and generate presigned URL
+        - name: Configure AWS credentials
+          uses: aws-actions/configure-aws-credentials@v2
+          with:
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-region: ${{ secrets.AWS_REGION }}
+        - name: Upload model to S3 and generate presigned URL
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+        run: |
+          if [ -f models/code_quality_model.joblib ]; then
+            echo "Uploading model to S3..."
+            aws s3 cp models/code_quality_model.joblib s3://$S3_BUCKET/code_quality_model.joblib
+            MODEL_URL=$(aws s3 presign s3://$S3_BUCKET/code_quality_model.joblib --expires-in 604800)
+            echo "MODEL_URL=$MODEL_URL" >> $GITHUB_ENV
+            echo "Uploaded and generated MODEL_URL"
+          else
+            echo "No model file found, skipping S3 upload"
+          fi
+
+      - name: Update Vercel MODEL_URL env var
+        if: ${{ secrets.VERCEL_TOKEN && secrets.VERCEL_PROJECT_ID }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          MODEL_URL: ${{ env.MODEL_URL }}
+        run: |
+          if [ -z "$MODEL_URL" ]; then
+            echo "No MODEL_URL, skipping Vercel env update"
+            exit 0
+          fi
+          echo "Updating Vercel env var MODEL_URL"
+          # Delete existing env var if exists
+          ENV_ID=$(curl -s -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env" | jq -r '.envs[] | select(.key=="MODEL_URL") | .id')
+          if [ -n "$ENV_ID" ]; then
+            curl -s -X DELETE -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/env/$ENV_ID"
+          fi
+          sudo apt-get update && sudo apt-get install -y jq
+          curl -s -X POST -H "Authorization: Bearer $VERCEL_TOKEN" -H "Content-Type: application/json" --data '{"key":"MODEL_URL","value":"'
 
       - name: Deploy to Vercel
         if: ${{ secrets.VERCEL_TOKEN != '' }}

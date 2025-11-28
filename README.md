@@ -111,6 +111,22 @@ docker push ghcr.io/<GH_USER>/code-quality-analyzer:latest
 - Add the following secrets to your GitHub repository: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`.
 - The workflow will automatically call the Vercel deploy action to trigger a redeploy after image publish.
 
+#### CI Secrets and required configuration
+Add the following GitHub repository secrets (as needed):
+
+- `GITHUB_TOKEN` - provided by GitHub Actions (default) for GHCR login
+- `AWS_ACCESS_KEY_ID` - (optional) AWS key for S3 upload
+- `AWS_SECRET_ACCESS_KEY` - (optional) AWS secret for S3 upload
+- `AWS_REGION` - (optional) AWS region for S3
+- `S3_BUCKET` - (optional) S3 bucket name to upload the model artifact (e.g., `my-bucket`)
+- `VERCEL_TOKEN` - (optional) Personal token for Vercel to update env and trigger deploys in workflow
+- `VERCEL_ORG_ID` - (optional) Vercel organization id
+- `VERCEL_PROJECT_ID` - (optional) Vercel project id
+
+Notes:
+- If you don't use S3, the model artifact can be included inside the container or specified with `MODEL_PATH` in the Vercel environment variables.
+- If you use S3 and `MODEL_URL` is created in CI, the workflow will update Vercel project env var `MODEL_URL` (replacing any existing one) and then trigger a Vercel deployment.
+
 
 
 ### Vercel (Docker-based deployment)
