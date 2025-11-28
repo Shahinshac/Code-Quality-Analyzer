@@ -1,0 +1,12 @@
+flask
+scikit-learn
+pandas
+joblib
+pytest
+flake8
+astunparse
+gunicorn
+requests
+pylint
+autopep8
+streamlit

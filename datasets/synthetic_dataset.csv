@@ -1,0 +1,9 @@
+code,label
+"def add(a, b):\n    return a + b\n","good"
+"def big_function():\n    a = 1\n    b = 2\n    c = 3\n    d = 4\n    e = 5\n    f = 6\n    g = 7\n    h = 8\n    i = 9\n    j = 10\n    # many lines\n    for _ in range(10):\n        print('x')\n","bad"
+"import os\nimport sys\n\nprint('hello')\n","good"
+"import os\nimport sys\n\nprint(sys.platform)\n","good"
+"def nested():\n    if True:\n        if True:\n            if True:\n                if True:\n                    print('deep')\n","bad"
+"def foo():\n    unused = 123\n    return 5\n","bad"
+"class Point:\n    def __init__(self, x, y):\n        self.x = x\n        self.y = y\n","good"
+"def long_fun():\n    a=1\n    b=2\n    c=3\n    d=4\n    e=5\n    f=6\n    g=7\n    h=8\n    i=9\n    j=10\n    k=11\n    l=12\n    m=13\n    n=14\n    o=15\n    p=16\n    q=17\n    r=18\n    s=19\n    t=20\n    u=21\n","bad"
