@@ -102,6 +102,7 @@ docker push ghcr.io/<GH_USER>/code-quality-analyzer:latest
 - In Vercel dashboard, import your project
 - Choose 'Deploy from Registry' and set the image `ghcr.io/<GH_USER>/code-quality-analyzer:latest`
 - Set `MODEL_URL`, `MODEL_PATH`, `DATABASE_URL` and other secrets as environment variables
+> Note: If you added a `vercel.json` file that included a `builds` entry referencing `@vercel/docker`, remove it to let the dashboard use the "Deploy from Registry" registry option. Vercel will otherwise try to use the unsupported builder and fail.
 
 3. Automate publishing images with GitHub Actions (workflow included):
   - There is a GitHub Actions workflow `.github/workflows/docker-publish-ghcr.yml` in this repo that builds and pushes your Docker image on each `main` push. Ensure GitHub Packages is enabled for your account and that `GITHUB_TOKEN` has the appropriate permissions.
