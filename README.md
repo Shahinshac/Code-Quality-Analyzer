@@ -88,6 +88,25 @@ heroku ps:scale web=1
 
 Note: Ensure model file `models/code_quality_model.joblib` is included or set the `MODEL_PATH` environment variable pointing to the model artifact.
 
+### Deploying with GHCR and Vercel (Recommended)
+
+1. Build & push your Docker image to GitHub Container Registry (GHCR):
+
+```powershell
+docker build -t ghcr.io/<GH_USER>/code-quality-analyzer:latest .
+echo <GH_PAT> | docker login ghcr.io -u <GH_USER> --password-stdin
+docker push ghcr.io/<GH_USER>/code-quality-analyzer:latest
+```
+
+2. Configure Vercel to use the container image:
+- In Vercel dashboard, import your project
+- Choose 'Deploy from Registry' and set the image `ghcr.io/<GH_USER>/code-quality-analyzer:latest`
+- Set `MODEL_URL`, `MODEL_PATH`, `DATABASE_URL` and other secrets as environment variables
+
+3. Automate publishing images with GitHub Actions (workflow included):
+  - There is a GitHub Actions workflow `.github/workflows/docker-publish-ghcr.yml` in this repo that builds and pushes your Docker image on each `main` push. Ensure GitHub Packages is enabled for your account and that `GITHUB_TOKEN` has the appropriate permissions.
+
+
 ### Vercel (Docker-based deployment)
 
 Vercel supports building and running containers. We provide a `Dockerfile` combined with `vercel.json` to build with `@vercel/docker`.
