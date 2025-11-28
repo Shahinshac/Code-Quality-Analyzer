@@ -40,3 +40,12 @@ jobs:
 
       - name: Image Published
         run: echo "Image published: ghcr.io/${{ github.repository_owner }}/code-quality-analyzer:${{ github.sha }}"
+
+      - name: Deploy to Vercel
+        if: ${{ secrets.VERCEL_TOKEN != '' }}
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod --confirm'

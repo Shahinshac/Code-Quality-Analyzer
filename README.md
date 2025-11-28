@@ -107,6 +107,11 @@ docker push ghcr.io/<GH_USER>/code-quality-analyzer:latest
 3. Automate publishing images with GitHub Actions (workflow included):
   - There is a GitHub Actions workflow `.github/workflows/docker-publish-ghcr.yml` in this repo that builds and pushes your Docker image on each `main` push. Ensure GitHub Packages is enabled for your account and that `GITHUB_TOKEN` has the appropriate permissions.
 
+4. Optional: Trigger automatic redeploy on Vercel after GHCR publish
+- Add the following secrets to your GitHub repository: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`.
+- The workflow will automatically call the Vercel deploy action to trigger a redeploy after image publish.
+
+
 
 ### Vercel (Docker-based deployment)
 
