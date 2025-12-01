@@ -12,6 +12,9 @@ TEMPLATE = """
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
 <title>Code Quality Analyzer - 40+ Programming Languages</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 :root {
   --primary-color: #667eea;
@@ -557,6 +560,152 @@ input[type="text"]:focus {
   margin-top: 15px;
 }
 
+.file-upload-zone {
+  border: 3px dashed var(--border-color);
+  border-radius: 15px;
+  padding: 40px 20px;
+  text-align: center;
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  background: var(--input-bg);
+}
+
+.file-upload-zone:hover,
+.file-upload-zone.drag-over {
+  border-color: var(--primary-color);
+  background: rgba(102, 126, 234, 0.05);
+  transform: scale(1.02);
+}
+
+.file-upload-zone i {
+  font-size: 3em;
+  color: var(--primary-color);
+  margin-bottom: 15px;
+  display: block;
+}
+
+.file-upload-zone p {
+  color: var(--text-color);
+  margin: 10px 0;
+}
+
+.file-upload-zone input[type="file"] {
+  display: none;
+}
+
+.code-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-action {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-action i {
+  font-size: 1em;
+}
+
+.char-counter {
+  text-align: right;
+  font-size: 0.85em;
+  color: var(--text-color);
+  opacity: 0.7;
+  margin-top: 5px;
+}
+
+.export-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.btn-export {
+  background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-export:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(81, 207, 102, 0.4);
+}
+
+.toast {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: var(--success-color);
+  color: white;
+  padding: 15px 25px;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  display: none;
+  align-items: center;
+  gap: 10px;
+  z-index: 1000;
+  animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.toast.show {
+  display: flex;
+}
+
+.code-preview {
+  background: #1e1e1e;
+  border-radius: 10px;
+  padding: 15px;
+  margin: 15px 0;
+  overflow-x: auto;
+}
+
+.code-preview pre {
+  margin: 0;
+  color: #d4d4d4;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.9em;
+  line-height: 1.5;
+}
+
 @media (max-width: 768px) {
   .language-selector {
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -717,7 +866,28 @@ input[type="text"]:focus {
       
       <div class="form-group">
         <label><i class="fas fa-code"></i> Code</label>
+        
+        <div class="file-upload-zone" id="fileUploadZone" onclick="document.getElementById('fileInput').click()">
+          <i class="fas fa-cloud-upload-alt"></i>
+          <p><strong>Drop a file here or click to upload</strong></p>
+          <p style="font-size: 0.9em; opacity: 0.8;">Supports all 40+ programming languages</p>
+          <input type="file" id="fileInput" accept=".py,.js,.ts,.java,.cpp,.c,.h,.hpp,.go,.rs,.rb,.php,.swift,.kt,.scala,.pl,.r,.m,.dart,.ex,.hs,.lua,.sh,.ps1,.sql,.html,.css,.xml,.yaml,.yml,.json,.md,.clj,.erl,.fs,.groovy,.jl,.vb,.asm,.f,.f90,.cob,.pas,.sol">
+        </div>
+        
+        <div class="code-actions">
+          <button type="button" class="btn-action" onclick="loadTemplate()">
+            <i class="fas fa-file-code"></i> Load Template
+          </button>
+          <button type="button" class="btn-action" onclick="clearCode()">
+            <i class="fas fa-eraser"></i> Clear
+          </button>
+          <button type="button" class="btn-action" onclick="formatCode()">
+            <i class="fas fa-indent"></i> Format
+          </button>
+        </div>
+        
         <textarea name="code" id="codeTextarea" rows="18" placeholder="Paste your code here for analysis...">{{ request.form.get('code', '') }}</textarea>
+        <div class="char-counter" id="charCounter">0 characters</div>
       </div>
       
       <div class="advanced-options">
@@ -746,6 +916,18 @@ input[type="text"]:focus {
     
     {% if analysis %}
     <div class="results">
+      <div class="export-buttons">
+        <button class="btn-export" onclick="copyResults()">
+          <i class="fas fa-copy"></i> Copy Results
+        </button>
+        <button class="btn-export" onclick="exportJSON()">
+          <i class="fas fa-download"></i> Export JSON
+        </button>
+        <button class="btn-export" onclick="exportPDF()">
+          <i class="fas fa-file-pdf"></i> Export PDF
+        </button>
+      </div>
+      
       <div class="score-card">
         <h2><i class="fas fa-chart-line"></i> Quality Score</h2>
         <div class="score-number">{{ analysis.quality_score }}<span style="font-size: 0.5em;">/100</span></div>
@@ -805,7 +987,255 @@ input[type="text"]:focus {
   </div>
 </div>
 
+<div class="toast" id="toast">
+  <i class="fas fa-check-circle"></i>
+  <span id="toastMessage">Success!</span>
+</div>
+
 <script>
+
+// File upload handling
+const fileInput = document.getElementById('fileInput');
+const fileUploadZone = document.getElementById('fileUploadZone');
+const codeTextarea = document.getElementById('codeTextarea');
+
+fileInput.addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      codeTextarea.value = event.target.result;
+      updateCharCounter();
+      showToast('Loaded ' + file.name);
+      
+      // Auto-detect language from file extension
+      const ext = file.name.split('.').pop().toLowerCase();
+      const langMap = {
+        'py': 'python', 'js': 'javascript', 'ts': 'typescript',
+        'java': 'java', 'cpp': 'cpp', 'c': 'c', 'h': 'c', 'hpp': 'cpp',
+        'go': 'go', 'rs': 'rust', 'rb': 'ruby', 'php': 'php',
+        'swift': 'swift', 'kt': 'kotlin', 'scala': 'scala',
+        'pl': 'perl', 'r': 'r', 'm': 'matlab', 'dart': 'dart',
+        'ex': 'elixir', 'hs': 'haskell', 'lua': 'lua',
+        'sh': 'shell', 'ps1': 'powershell', 'sql': 'sql',
+        'html': 'html', 'css': 'css', 'xml': 'xml',
+        'yaml': 'yaml', 'yml': 'yaml', 'json': 'json', 'md': 'markdown'
+      };
+      
+      const langSelector = document.getElementById('langSelect');
+      if (langMap[ext] && langSelector) {
+        langSelector.value = langMap[ext];
+      }
+    };
+    reader.readAsText(file);
+  }
+});
+
+// Drag and drop
+fileUploadZone.addEventListener('dragover', function(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  fileUploadZone.classList.add('drag-over');
+});
+
+fileUploadZone.addEventListener('dragleave', function(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  fileUploadZone.classList.remove('drag-over');
+});
+
+fileUploadZone.addEventListener('drop', function(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  fileUploadZone.classList.remove('drag-over');
+  
+  const files = e.dataTransfer.files;
+  if (files.length > 0) {
+    fileInput.files = files;
+    fileInput.dispatchEvent(new Event('change'));
+  }
+});
+
+// Character counter
+function updateCharCounter() {
+  const count = codeTextarea.value.length;
+  document.getElementById('charCounter').textContent = count.toLocaleString() + ' characters';
+}
+
+codeTextarea.addEventListener('input', updateCharCounter);
+
+// Code templates by language
+const codeTemplates = {
+  python: 'def calculate_sum(numbers):\\n    \\\"\\\"\\\"Calculate the sum of a list of numbers.\\\"\\\"\\\"\\n    total = 0\\n    for num in numbers:\\n        total += num\\n    return total\\n\\n# Example usage\\nresult = calculate_sum([1, 2, 3, 4, 5])\\nprint(f\\\"Sum: {result}\\\")',
+  
+  javascript: 'function calculateSum(numbers) {\\n  // Calculate the sum of an array of numbers\\n  let total = 0;\\n  for (const num of numbers) {\\n    total += num;\\n  }\\n  return total;\\n}\\n\\n// Example usage\\nconst result = calculateSum([1, 2, 3, 4, 5]);\\nconsole.log(`Sum: ${result}`);',
+  
+  java: 'public class Calculator {\\n    public static int calculateSum(int[] numbers) {\\n        int total = 0;\\n        for (int num : numbers) {\\n            total += num;\\n        }\\n        return total;\\n    }\\n    \\n    public static void main(String[] args) {\\n        int[] nums = {1, 2, 3, 4, 5};\\n        int result = calculateSum(nums);\\n        System.out.println(\\\"Sum: \\\" + result);\\n    }\\n}',
+  
+  cpp: '#include <iostream>\\n#include <vector>\\n\\nint calculateSum(const std::vector<int>& numbers) {\\n    int total = 0;\\n    for (int num : numbers) {\\n        total += num;\\n    }\\n    return total;\\n}\\n\\nint main() {\\n    std::vector<int> nums = {1, 2, 3, 4, 5};\\n    int result = calculateSum(nums);\\n    std::cout << \\\"Sum: \\\" << result << std::endl;\\n    return 0;\\n}',
+  
+  go: 'package main\\n\\nimport \\\"fmt\\\"\\n\\nfunc calculateSum(numbers []int) int {\\n    total := 0\\n    for _, num := range numbers {\\n        total += num\\n    }\\n    return total\\n}\\n\\nfunc main() {\\n    nums := []int{1, 2, 3, 4, 5}\\n    result := calculateSum(nums)\\n    fmt.Printf(\\\"Sum: %d\\\\n\\\", result)\\n}'
+};
+
+function loadTemplate() {
+  const langSelector = document.getElementById('langSelect');
+  const lang = langSelector ? langSelector.value : 'python';
+  const template = codeTemplates[lang] || codeTemplates['python'];
+  codeTextarea.value = template;
+  updateCharCounter();
+  showToast('Loaded ' + lang + ' template');
+}
+
+function clearCode() {
+  codeTextarea.value = '';
+  updateCharCounter();
+  showToast('Code cleared');
+}
+
+function formatCode() {
+  // Simple formatting: trim lines and ensure consistent indentation
+  const lines = codeTextarea.value.split('\\n');
+  const formatted = lines.map(line => line.trimEnd()).join('\\n');
+  codeTextarea.value = formatted;
+  showToast('Code formatted');
+}
+
+// Export functions
+function copyResults() {
+  const results = document.querySelector('.results');
+  if (!results) return;
+  
+  const text = results.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('Results copied to clipboard!');
+  }).catch(err => {
+    showToast('Failed to copy', 'error');
+  });
+}
+
+function exportJSON() {
+  const analysisData = {
+    timestamp: new Date().toISOString(),
+    language: document.getElementById('langSelect')?.value || 'unknown',
+    smells: [],
+    suggestions: [],
+    qualityScore: null,
+    mlClassification: null
+  };
+  
+  // Extract data from results
+  const smellItems = document.querySelectorAll('.smell-item');
+  smellItems.forEach(item => {
+    const kind = item.querySelector('.smell-kind')?.textContent;
+    const message = item.textContent.replace(kind, '').trim();
+    analysisData.smells.push({ kind, message });
+  });
+  
+  const scoreNumber = document.querySelector('.score-number');
+  if (scoreNumber) {
+    analysisData.qualityScore = parseInt(scoreNumber.textContent);
+  }
+  
+  const blob = new Blob([JSON.stringify(analysisData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'code-analysis-' + Date.now() + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  showToast('JSON exported successfully!');
+}
+
+function exportPDF() {
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // Title
+    doc.setFontSize(20);
+    doc.text('Code Quality Analysis Report', 20, 20);
+    
+    // Date
+    doc.setFontSize(10);
+    doc.text('Generated: ' + new Date().toLocaleString(), 20, 30);
+    
+    // Quality Score
+    const scoreNumber = document.querySelector('.score-number');
+    if (scoreNumber) {
+      doc.setFontSize(16);
+      doc.text('Quality Score: ' + scoreNumber.textContent, 20, 45);
+    }
+    
+    // Code Smells
+    doc.setFontSize(14);
+    doc.text('Code Smells:', 20, 60);
+    
+    const smellItems = document.querySelectorAll('.smell-item');
+    let yPos = 70;
+    doc.setFontSize(10);
+    
+    smellItems.forEach((item, index) => {
+      if (yPos > 270) {
+        doc.addPage();
+        yPos = 20;
+      }
+      const kind = item.querySelector('.smell-kind')?.textContent || '';
+      const message = item.textContent.replace(kind, '').trim();
+      doc.text((index + 1) + '. ' + kind + ': ' + message.substring(0, 80), 20, yPos);
+      yPos += 10;
+    });
+    
+    doc.save('code-analysis-' + Date.now() + '.pdf');
+    showToast('PDF exported successfully!');
+  } catch (err) {
+    showToast('PDF export failed', 'error');
+    console.error('PDF export error:', err);
+  }
+}
+
+function showToast(message, type = 'success') {
+  const toast = document.getElementById('toast');
+  const toastMessage = document.getElementById('toastMessage');
+  
+  toastMessage.textContent = message;
+  toast.style.background = type === 'error' ? 'var(--error-color)' : 'var(--success-color)';
+  toast.classList.add('show');
+  
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 3000);
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+  // Ctrl+Enter or Cmd+Enter to submit
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    document.querySelector('form').submit();
+  }
+  
+  // Ctrl+L to load template
+  if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
+    e.preventDefault();
+    loadTemplate();
+  }
+  
+  // Escape to clear
+  if (e.key === 'Escape' && document.activeElement === codeTextarea) {
+    clearCode();
+  }
+});
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+  updateCharCounter();
+  
+  // Highlight code in results if present
+  document.querySelectorAll('pre code').forEach((block) => {
+    hljs.highlightElement(block);
+  });
+});
 
 function toggleTheme() {
   const html = document.documentElement;
@@ -839,6 +1269,19 @@ window.addEventListener('DOMContentLoaded', function() {
 });
 
 // Example code snippets
+function toggleAdvanced() {
+  const content = document.getElementById('advancedContent');
+  const button = document.querySelector('.toggle-advanced');
+  const icon = button.querySelector('.fa-chevron-down');
+  
+  content.classList.toggle('show');
+  
+  if (content.classList.contains('show')) {
+    icon.style.transform = 'rotate(180deg)';
+  } else {
+    icon.style.transform = 'rotate(0deg)';
+  }
+}
 </body>
 </html>
 """
