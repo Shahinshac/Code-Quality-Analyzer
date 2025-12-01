@@ -615,13 +615,102 @@ input[type="text"]:focus {
   .header h1 { font-size: 1.8em; }
   .score-number { font-size: 3em; }
 }
+
+@media (max-width: 768px) {
+  .header {
+    padding: 30px 20px;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .header h1 {
+    font-size: 1.8em;
+  }
+  
+  .header p {
+    font-size: 1em;
+  }
+  
+  .content {
+    padding: 25px 20px;
+  }
+  
+  .form-group label {
+    font-size: 1em;
+  }
+  
+  .language-dropdown {
+    padding: 12px;
+    font-size: 1em;
+  }
+  
+  textarea {
+    padding: 12px;
+    font-size: 13px;
+  }
+  
+  .btn-analyze {
+    padding: 16px;
+    font-size: 1.1em;
+  }
+  
+  .score-number {
+    font-size: 3em;
+  }
+  
+  .section {
+    padding: 20px 15px;
+  }
+  
+  .section h3 {
+    font-size: 1.2em;
+  }
+}
+
+@media (max-width: 480px) {
+  .header h1 {
+    font-size: 1.5em;
+  }
+  
+  .header p {
+    font-size: 0.9em;
+  }
+  
+  .content {
+    padding: 20px 15px;
+  }
+  
+  textarea {
+    font-size: 12px;
+  }
+  
+  .btn-analyze {
+    padding: 14px;
+    font-size: 1em;
+  }
+  
+  .score-number {
+    font-size: 2.5em;
+  }
+  
+  .section {
+    padding: 15px 12px;
+  }
+}
+
 </style>
 </head>
 <body>
 <div class="container">
-  <div class="header">
-    <h1><i class="fas fa-code"></i> Code Quality Analyzer</h1>
-    <p>AI-Powered Static Code Analysis</p>
+  <div class="header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark Mode" style="background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.3); color: white; padding: 10px 15px; border-radius: 50px; cursor: pointer; transition: all 0.3s ease; font-size: 1.2em; backdrop-filter: blur(10px);">
+      <i class="fas fa-moon" id="themeIcon"></i>
+    </button>
+    <div style="flex: 1; text-align: center;">
+      <h1><i class="fas fa-code"></i> Code Quality Analyzer</h1>
+      <p><i class="fas fa-brain"></i> AI-Powered Static Code Analysis</p>
+    </div>
+    <div style="width: 50px;"></div>
   </div>
   
   <div class="content">
@@ -768,306 +857,39 @@ input[type="text"]:focus {
 </div>
 
 <script>
-function toggleAdvanced() {
-  const content = document.getElementById('advancedContent');
-  const button = document.querySelector('.toggle-advanced');
-  content.classList.toggle('show');
-  button.classList.toggle('active');
-}
 
-// Example code snippets for each language
-const examples = {
-  python: `# Example: Poor Python code with multiple issues
-def calculate(x,y,z):
-    a=x+y
-    b=a*z
-    c=b/2
-    d=c-10
-    e=d+5
-    f=e*3
-    return f
-
-class MyClass:
-    def __init__(self):
-        self.data=[]
-    
-    def process(self,item):
-        self.data.append(item)
-        return len(self.data)
-
-# Global variable
-counter = 0
-
-def increment():
-    global counter
-    counter = counter + 1
-    return counter`,
-
-  javascript: `// Example: Poor JavaScript code with issues
-function processData(arr) {
-  var result = [];
-  for (var i = 0; i < arr.length; i++) {
-    var item = arr[i];
-    if (item != null) {
-      result.push(item * 2);
-    }
-  }
-  return result;
-}
-
-// Unused variable
-var unused = 'test';
-
-// Long parameter list
-function createUser(name, email, age, address, phone, city, country) {
-  return {
-    name: name,
-    email: email,
-    age: age,
-    address: address
-  };
-}
-
-// Complex nested code
-function validate(data) {
-  if (data) {
-    if (data.user) {
-      if (data.user.name) {
-        return true;
-      }
-    }
-  }
-  return false;
-}`,
-
-  typescript: `// Example: TypeScript code with issues
-interface User {
-  name: string;
-  email: string;
-}
-
-function processUser(user: any): any {
-  const result: any = {};
-  result.name = user.name;
-  result.email = user.email;
-  return result;
-}
-
-class DataProcessor {
-  private data: any[] = [];
+function toggleTheme() {
+  const html = document.documentElement;
+  const icon = document.getElementById('themeIcon');
   
-  add(item: any): void {
-    this.data.push(item);
-  }
-  
-  process(): any {
-    let result: any = [];
-    for (let i = 0; i < this.data.length; i++) {
-      result.push(this.data[i]);
-    }
-    return result;
-  }
-}`,
-
-  java: `// Example: Java code with issues
-public class Calculator {
-    private int a, b, c, d, e, f;
-    
-    public int calculate(int x, int y, int z) {
-        a = x + y;
-        b = a * z;
-        c = b / 2;
-        d = c - 10;
-        e = d + 5;
-        f = e * 3;
-        return f;
-    }
-    
-    public void processData(int[] data) {
-        for (int i = 0; i < data.length; i++) {
-            System.out.println(data[i]);
-        }
-    }
-}
-
-class UserManager {
-    public String createUser(String name, String email, 
-                           int age, String address, 
-                           String phone, String city) {
-        return name + email + age;
-    }
-}`,
-
-  cpp: `// Example: C++ code with issues
-#include <iostream>
-using namespace std;
-
-int global_counter = 0;
-
-class DataProcessor {
-public:
-    int* data;
-    int size;
-    
-    void process(int x, int y, int z) {
-        int a = x + y;
-        int b = a * z;
-        int c = b / 2;
-        cout << c << endl;
-    }
-    
-    void allocate(int n) {
-        data = new int[n];
-        size = n;
-    }
-};
-
-int calculate(int a, int b, int c, int d, int e) {
-    return a + b + c + d + e;
-}`,
-
-  go: `// Example: Go code with issues
-package main
-
-import "fmt"
-
-var GlobalCounter int = 0
-
-func ProcessData(x int, y int, z int, a int, b int) int {
-    result := x + y
-    result = result * z
-    result = result + a
-    result = result - b
-    return result
-}
-
-type DataProcessor struct {
-    data []int
-}
-
-func (d *DataProcessor) Add(item int) {
-    d.data = append(d.data, item)
-}
-
-func main() {
-    var unused string = "test"
-    fmt.Println(ProcessData(1, 2, 3, 4, 5))
-}`,
-
-  rust: `// Example: Rust code with issues
-fn process_data(x: i32, y: i32, z: i32) -> i32 {
-    let a = x + y;
-    let b = a * z;
-    let c = b / 2;
-    let d = c - 10;
-    let e = d + 5;
-    let f = e * 3;
-    f
-}
-
-struct DataProcessor {
-    data: Vec<i32>,
-}
-
-impl DataProcessor {
-    fn new() -> DataProcessor {
-        DataProcessor { data: Vec::new() }
-    }
-    
-    fn add(&mut self, item: i32) {
-        self.data.push(item);
-    }
-}
-
-fn main() {
-    let _unused = "test";
-    let result = process_data(1, 2, 3);
-    println!("{}", result);
-}`,
-
-  ruby: `# Example: Ruby code with issues
-def process_data(x, y, z, a, b)
-  result = x + y
-  result = result * z
-  result = result + a
-  result = result - b
-  result
-end
-
-class DataProcessor
-  def initialize
-    @data = []
-  end
-  
-  def add(item)
-    @data.push(item)
-  end
-  
-  def process
-    result = []
-    for i in 0..@data.length-1
-      result.push(@data[i] * 2)
-    end
-    result
-  end
-end
-
-$global_counter = 0
-
-def increment
-  $global_counter = $global_counter + 1
-end`,
-
-  php: `<?php
-// Example: PHP code with issues
-function processData($x, $y, $z, $a, $b) {
-    $result = $x + $y;
-    $result = $result * $z;
-    $result = $result + $a;
-    $result = $result - $b;
-    return $result;
-}
-
-class DataProcessor {
-    private $data = array();
-    
-    public function add($item) {
-        array_push($this->data, $item);
-    }
-    
-    public function process() {
-        $result = array();
-        for ($i = 0; $i < count($this->data); $i++) {
-            $result[] = $this->data[$i] * 2;
-        }
-        return $result;
-    }
-}
-
-$global_counter = 0;
-
-function increment() {
-    global $global_counter;
-    $global_counter = $global_counter + 1;
-    return $global_counter;
-}
-?>`
-};
-
-function loadExample() {
-  const selectedLang = document.getElementById('langSelect').value;
-  const codeTextarea = document.getElementById('codeTextarea');
-  
-  if (examples[selectedLang]) {
-    codeTextarea.value = examples[selectedLang];
-    codeTextarea.scrollTop = 0;
+  if (html.classList.contains('dark-mode')) {
+    html.classList.remove('dark-mode');
+    icon.classList.remove('fa-sun');
+    icon.classList.add('fa-moon');
+    localStorage.setItem('theme', 'light');
+  } else {
+    html.classList.add('dark-mode');
+    icon.classList.remove('fa-moon');
+    icon.classList.add('fa-sun');
+    localStorage.setItem('theme', 'dark');
   }
 }
 
-document.getElementById('analyzeForm').addEventListener('submit', function() {
-  document.getElementById('loading').style.display = 'block';
+// Load saved theme
+window.addEventListener('DOMContentLoaded', function() {
+  const savedTheme = localStorage.getItem('theme');
+  const icon = document.getElementById('themeIcon');
+  
+  if (savedTheme === 'dark') {
+    document.documentElement.classList.add('dark-mode');
+    if (icon) {
+      icon.classList.remove('fa-moon');
+      icon.classList.add('fa-sun');
+    }
+  }
 });
-</script>
+
+// Example code snippets
 </body>
 </html>
 """
