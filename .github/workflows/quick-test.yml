@@ -1,0 +1,33 @@
+name: Quick Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  quick-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Install core dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flask scikit-learn numpy joblib pytest
+          
+      - name: Quick import test
+        run: |
+          python -c "from code_quality_analyzer import detectors, parser, ml_classifier; print('✓ All imports successful')"
+          
+      - name: Run core tests only
+        run: |
+          python -m pytest tests/test_detectors.py tests/test_parser.py -v
+        continue-on-error: false
