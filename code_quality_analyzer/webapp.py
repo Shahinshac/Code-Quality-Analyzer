@@ -2,18 +2,7 @@ from flask import Flask, request, render_template_string, jsonify
 import os
 from .detectors import RuleBasedDetector
 from .suggestion_engine import suggestions_for_smells
-
-# ML dependencies are optional (not available in Vercel serverless)
-try:
-    from .ml_classifier import predict_code_quality, compute_quality_score
-    ML_AVAILABLE = True
-except ImportError:
-    ML_AVAILABLE = False
-    def predict_code_quality(*args, **kwargs):
-        raise ImportError("ML dependencies not available")
-    def compute_quality_score(label, confidence, smells):
-        # Fallback quality score based on smell count
-        return max(0, 100 - len(smells) * 10)
+from .ml_classifier import predict_code_quality, compute_quality_score
 
 TEMPLATE = """
 <!doctype html>
@@ -89,14 +78,12 @@ def create_app():
                 smells = detector.detect_all(code)
             suggestions = suggestions_for_smells(smells)
             ml_result = None
-            if model_path and ML_AVAILABLE:
+            if model_path:
                 try:
                     label, prob = predict_code_quality(code, model_path)
                     ml_result = {'label': label, 'confidence': prob}
                 except Exception:
                     ml_result = {'error': 'Failed to use model (not trained or invalid path)'}
-            elif not ML_AVAILABLE:
-                ml_result = {'error': 'ML dependencies not installed (use Docker deployment for ML features)'}
             # compute quality score even if ML not used
             score = compute_quality_score(None, None, smells)
             if ml_result and isinstance(ml_result, dict) and 'label' in ml_result:
@@ -120,14 +107,12 @@ def create_app():
         smells = detector.detect_all(code)
         suggestions = suggestions_for_smells(smells)
         ml_result = None
-        if model_path and ML_AVAILABLE:
+        if model_path:
             try:
                 label, prob = predict_code_quality(code, model_path)
                 ml_result = {'label': label, 'confidence': prob}
             except Exception:
                 ml_result = {'error': 'Failed to use model (not trained or invalid path)'}
-        elif not ML_AVAILABLE:
-            ml_result = {'error': 'ML dependencies not installed'}
         return jsonify({
             'smells': [s.to_dict() for s in smells],
             'suggestions': suggestions,

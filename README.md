@@ -161,50 +161,65 @@ heroku ps:scale web=1
 
 Note: Ensure model file `models/code_quality_model.joblib` is included or set the `MODEL_PATH` environment variable pointing to the model artifact.
 
-### Deploying with GHCR and Vercel (Recommended)
+### Production Deployment with GitHub Container Registry (Recommended)
 
-1. Build & push your Docker image to GitHub Container Registry (GHCR):
+**Best deployment method** - No size limits, full multi-language support, ML features included.
+
+#### Automatic Deployment with GitHub Actions
+
+The project includes automated CI/CD that builds and publishes Docker images to GitHub Container Registry (GHCR) on every push to main:
+
+1. **GitHub Actions automatically:**
+   - Builds multi-architecture Docker image (linux/amd64, linux/arm64)
+   - Pushes to `ghcr.io/<YOUR_USERNAME>/code-quality-analyzer:latest`
+   - Optionally uploads ML models to S3 (if configured)
+   - Uses build cache for faster subsequent builds
+
+2. **Pull and run the pre-built image:**
 
 ```powershell
-docker build -t ghcr.io/<GH_USER>/code-quality-analyzer:latest .
-echo <GH_PAT> | docker login ghcr.io -u <GH_USER> --password-stdin
-docker push ghcr.io/<GH_USER>/code-quality-analyzer:latest
+# Pull latest image from GHCR
+docker pull ghcr.io/shahinshac/code-quality-analyzer:latest
+
+# Run the container
+docker run -d -p 5000:5000 \
+  -e MODEL_PATH=/app/models/code_quality_model.joblib \
+  ghcr.io/shahinshac/code-quality-analyzer:latest
 ```
 
-2. Configure Vercel to use the container image:
-- In Vercel dashboard, import your project
-- Choose **'Deploy from Registry'** and set the image `ghcr.io/<GH_USER>/code-quality-analyzer:latest`
-- Set `MODEL_URL`, `MODEL_PATH`, `DATABASE_URL` and other secrets as environment variables
-- **Do NOT use vercel.json** - the "Deploy from Registry" method in the Vercel dashboard handles container deployment directly
+3. **Deploy to any cloud platform:**
+   - **Railway**: Connect GitHub repo, auto-deploys from GHCR
+   - **Render**: Deploy from Docker registry
+   - **Fly.io**: `fly launch` from Dockerfile
+   - **Google Cloud Run**: Deploy from container registry
+   - **AWS ECS/Fargate**: Use GHCR image
+   - **Azure Container Instances**: Pull from GHCR
 
-3. Automate publishing images with GitHub Actions:
-  - The GitHub Actions workflow `.github/workflows/docker-publish-ghcr.yml` automatically builds and pushes your Docker image on each `main` push
-  - Ensure GitHub Packages is enabled and `GITHUB_TOKEN` has appropriate permissions
-  - Workflow includes preflight check to prevent vercel.json from being re-added
+#### Manual Build and Push (Optional)
 
-4. Optional: Automatic Vercel redeploy after GHCR publish
-- Add these secrets to your GitHub repository: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`
-- The workflow will automatically trigger Vercel redeploy after image publish
+```powershell
+# Build locally
+docker build -t ghcr.io/<YOUR_USERNAME>/code-quality-analyzer:latest .
 
-#### CI Secrets and Configuration
+# Login to GHCR
+echo <GITHUB_TOKEN> | docker login ghcr.io -u <YOUR_USERNAME> --password-stdin
 
-Add the following GitHub repository secrets/variables as needed:
+# Push to GHCR
+docker push ghcr.io/<YOUR_USERNAME>/code-quality-analyzer:latest
+```
+
+#### Optional: S3 Model Storage
+
+Configure these GitHub repository secrets/variables to enable S3 model upload:
 
 **Secrets:**
-- `GITHUB_TOKEN` - Provided by GitHub Actions (default) for GHCR login
-- `AWS_ACCESS_KEY_ID` - (Optional) AWS key for S3 model upload
-- `AWS_SECRET_ACCESS_KEY` - (Optional) AWS secret for S3 upload
-- `VERCEL_TOKEN` - (Optional) Personal token for Vercel API
-- `VERCEL_ORG_ID` - (Optional) Vercel organization ID
+- `AWS_ACCESS_KEY_ID` - AWS access key
+- `AWS_SECRET_ACCESS_KEY` - AWS secret key
 
 **Variables:**
-- `AWS_REGION` - (Optional) AWS region for S3 (default: us-east-1)
-- `AWS_S3_BUCKET` - (Optional) S3 bucket name for model artifacts
-- `VERCEL_PROJECT_ID` - (Optional) Vercel project ID
+- `AWS_REGION` - AWS region (default: us-east-1)
+- `AWS_S3_BUCKET` - S3 bucket name for model storage
 
-Notes:
-- If S3 is not configured, the model artifact should be included in the container image
-- The workflow automatically updates Vercel's `MODEL_S3_URL` environment variable if S3 upload succeeds
-- Workflow supports multi-architecture builds (linux/amd64, linux/arm64)
+The workflow will automatically upload models to S3 and generate presigned URLs for download.
 
 Contributions & improvements are welcome.

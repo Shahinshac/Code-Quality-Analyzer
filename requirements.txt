@@ -1,21 +1,33 @@
-# Minimal dependencies for Vercel serverless deployment
-# Optimized to stay under 250MB unzipped limit
+# Docker Deployment - Full Requirements
+# Use this file for Docker/container deployments with all features
 
-# Core web framework (minimal versions)
-flask==3.0.0
+# Core dependencies
+flask
+gunicorn
+requests
 
-# Utilities
-requests==2.31.0
+# Machine Learning
+scikit-learn
+pandas
+joblib
 
-# Basic Python code analysis
-astunparse==1.6.3
+# Python analysis tools
+flake8
+pylint
+autopep8
+astunparse
 
-# Note: The following are excluded for serverless deployment to reduce size:
-# - scikit-learn, pandas, joblib (ML features) - 150+ MB
-# - pylint, flake8 (heavy linters) - 50+ MB  
-# - streamlit (not compatible with serverless) - 40+ MB
-# - pytest, gunicorn (dev/container only)
-#
-# For full functionality with ML and all linters, use Docker/GHCR deployment
-# Container deployment has no size limits and includes all features
+# Testing
+pytest
 
+# Web interface
+streamlit
+
+# Multi-language support (optional linters - install via system package managers)
+# JavaScript/TypeScript: npm install -g eslint
+# Java: apt-get install checkstyle / brew install checkstyle
+# C/C++: apt-get install cppcheck / brew install cppcheck
+# Go: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+# Rust: rustup component add clippy
+# Ruby: gem install rubocop
+# PHP: composer global require squizlabs/php_codesniffer

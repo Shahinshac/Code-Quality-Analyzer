@@ -1,4 +1,4 @@
-name: Build and Publish Docker Image to GHCR and Deploy to Vercel
+name: Build and Publish Docker Image to GHCR
 
 on:
   push:
@@ -10,23 +10,7 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  preflight-check:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Check for vercel.json
-        run: |
-          if [ -f "vercel.json" ]; then
-            echo "ERROR: vercel.json file detected. This causes @vercel/docker builder errors."
-            echo "Please remove vercel.json and use 'Deploy from Registry' in Vercel."
-            exit 1
-          fi
-          echo "✓ No vercel.json found - proceeding with deployment"
-
   build-and-push:
-    needs: preflight-check
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -107,39 +91,3 @@ jobs:
             --expires-in 31536000)
           echo "model-url=$PRESIGNED_URL" >> $GITHUB_OUTPUT
           echo "✓ Generated presigned URL (valid for 1 year)"
-
-  update-vercel-env:
-    needs: [build-and-push, upload-model-to-s3]
-    runs-on: ubuntu-latest
-    if: ${{ always() && needs.build-and-push.result == 'success' && vars.VERCEL_PROJECT_ID != '' }}
-    steps:
-      - name: Update Vercel environment variable
-        if: ${{ needs.upload-model-to-s3.result == 'success' }}
-        run: |
-          curl -X POST "https://api.vercel.com/v9/projects/${{ vars.VERCEL_PROJECT_ID }}/env" \
-            -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "key": "MODEL_S3_URL",
-              "value": "${{ needs.upload-model-to-s3.outputs.model-url }}",
-              "type": "encrypted",
-              "target": ["production", "preview", "development"]
-            }'
-          echo "✓ Updated Vercel MODEL_S3_URL environment variable"
-
-  deploy-to-vercel:
-    needs: [build-and-push, update-vercel-env]
-    runs-on: ubuntu-latest
-    if: ${{ always() && needs.build-and-push.result == 'success' && vars.VERCEL_PROJECT_ID != '' }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ vars.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod'
-          working-directory: ./
