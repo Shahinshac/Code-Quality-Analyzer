@@ -1,6 +1,12 @@
 import os
+import csv
 from typing import Tuple
-import pandas as pd
+try:
+    import pandas as pd
+    PANDAS_AVAILABLE = True
+except ImportError:
+    PANDAS_AVAILABLE = False
+    pd = None
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import FeatureUnion
@@ -28,16 +34,36 @@ def extract_numeric_features(src: str) -> dict:
     }
 
 
-def load_dataset(path: str) -> pd.DataFrame:
-    df = pd.read_csv(path)
-    # convert literal "\\n" sequences to real newlines
-    if 'code' in df.columns:
-        df['code'] = df['code'].astype(str).apply(lambda s: s.replace('\\n', '\n'))
-    # Expected columns: 'code', 'label'
-    return df
+def load_dataset(path: str):
+    """Load dataset from CSV. Returns dict with 'code' and 'label' lists."""
+    if PANDAS_AVAILABLE:
+        df = pd.read_csv(path)
+        # convert literal "\\n" sequences to real newlines
+        if 'code' in df.columns:
+            df['code'] = df['code'].astype(str).apply(lambda s: s.replace('\\n', '\n'))
+        return df
+    else:
+        # Fallback: manual CSV parsing
+        with open(path, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            data = {'code': [], 'label': []}
+            for row in reader:
+                code = row.get('code', '').replace('\\n', '\n')
+                label = row.get('label', '')
+                data['code'].append(code)
+                data['label'].append(label)
+        # Create a simple dict that mimics DataFrame interface
+        class SimpleDataFrame:
+            def __init__(self, data):
+                self.data = data
+                self.columns = list(data.keys())
+            def __getitem__(self, key):
+                return self.data[key]
+        return SimpleDataFrame(data)
 
 
-def featurize_dataframe(df: pd.DataFrame) -> Tuple[pd.DataFrame, np.ndarray]:
+def featurize_dataframe(df) -> Tuple[dict, np.ndarray]:
+    """Extract features from dataset (works with pandas DataFrame or SimpleDataFrame)"""
     # numeric features
     numeric_features = []
     for src in df['code']:
@@ -49,10 +75,16 @@ def featurize_dataframe(df: pd.DataFrame) -> Tuple[pd.DataFrame, np.ndarray]:
 
     # combine: numeric + tokens
     # For training, the pipeline should be maintained; but for simplicity, we return components
-    return {'numeric': numeric_features, 'tokens': (token_features, vectorizer)}, df['label'].values
+    labels = df['label']
+    if hasattr(labels, 'values'):  # pandas Series
+        labels = labels.values
+    else:  # list
+        labels = np.array(labels)
+    return {'numeric': numeric_features, 'tokens': (token_features, vectorizer)}, labels
 
 
-def train_model(df: pd.DataFrame, output_path: str):
+def train_model(df, output_path: str):
+    """Train model on dataset (works with pandas DataFrame or SimpleDataFrame)"""
     components, y = featurize_dataframe(df)
     numeric = components['numeric']
     tokens, vect = components['tokens']
@@ -92,6 +124,16 @@ def predict_code_quality(code: str, model_path: str):
     pred = model.predict(X)[0]
     prob = model.predict_proba(X).max()
     return pred, float(prob)
+
+
+def compute_quality_score(label, confidence, smells):
+    """Compute overall quality score from ML prediction and detected smells"""
+    base_score = 100
+    if label and label.lower() == 'bad':
+        base_score -= 30
+    smell_penalty = len(smells) * 5
+    final_score = max(0, base_score - smell_penalty)
+    return final_score
 
 
 if __name__ == '__main__':

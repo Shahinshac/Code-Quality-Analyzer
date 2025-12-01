@@ -1,27 +1,26 @@
-# Docker Deployment - Full Requirements
-# Use this file for Docker/container deployments with all features
-
 # Core dependencies
-flask
-gunicorn
-requests
+flask==3.0.0
+gunicorn==21.2.0
+requests==2.31.0
 
-# Machine Learning
-scikit-learn
-pandas
-joblib
+# Machine Learning (with version constraints for Windows compatibility)
+scikit-learn==1.3.2
+numpy==1.26.2
+joblib==1.3.2
 
 # Python analysis tools
-flake8
-pylint
-autopep8
-astunparse
+flake8==7.0.0
+pylint==3.0.3
+autopep8==2.0.4
+astunparse==1.6.3
 
 # Testing
-pytest
+pytest==7.4.3
 
-# Web interface
-streamlit
+# Note: pandas excluded due to pyarrow build issues on Windows
+# Note: streamlit excluded (heavy dependency, optional UI)
+# For pandas support, install separately: pip install pandas --no-deps
+# Docker deployment includes all dependencies without build issues
 
 # Multi-language support (optional linters - install via system package managers)
 # JavaScript/TypeScript: npm install -g eslint
@@ -31,3 +30,4 @@ streamlit
 # Rust: rustup component add clippy
 # Ruby: gem install rubocop
 # PHP: composer global require squizlabs/php_codesniffer
+
