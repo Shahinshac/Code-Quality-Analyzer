@@ -509,57 +509,6 @@ input[type="text"]:focus {
 .badge-bad { background: #ff6b6b; color: white; }
 .badge-warning { background: #ffa500; color: white; }
 
-.btn-example {
-  background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 10px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 15px rgba(81, 207, 102, 0.3);
-  position: relative;
-  overflow: hidden;
-}
-
-.btn-example::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
-  transform: translate(-50%, -50%);
-  transition: width 0.6s, height 0.6s;
-}
-
-.btn-example:hover::before {
-  width: 300px;
-  height: 300px;
-}
-
-.btn-example:hover {
-  transform: translateY(-3px) scale(1.05);
-  box-shadow: 0 6px 20px rgba(81, 207, 102, 0.5);
-}
-
-.btn-example:active {
-  transform: translateY(-1px) scale(1.02);
-}
-
-.btn-example i {
-  margin-right: 8px;
-  animation: book-flip 2s ease-in-out infinite;
-}
-
-@keyframes book-flip {
-  0%, 100% { transform: rotateY(0deg); }
-  50% { transform: rotateY(180deg); }
-}
-
 .advanced-options {
   margin-top: 15px;
   border-top: 2px solid #e0e0e0;
@@ -768,9 +717,6 @@ input[type="text"]:focus {
       
       <div class="form-group">
         <label><i class="fas fa-code"></i> Code</label>
-        <div style="margin-bottom: 10px;">
-          <button type="button" class="btn-example" onclick="loadExample()"><i class="fas fa-book"></i> Load Example</button>
-        </div>
         <textarea name="code" id="codeTextarea" rows="18" placeholder="Paste your code here for analysis...">{{ request.form.get('code', '') }}</textarea>
       </div>
       
