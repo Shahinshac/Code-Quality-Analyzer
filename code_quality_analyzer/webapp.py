@@ -227,6 +227,32 @@ body {
   transform: translateY(-1px);
 }
 
+.language-dropdown {
+  width: 100%;
+  padding: 15px;
+  font-size: 1.1em;
+  border: 2px solid #ddd;
+  border-radius: 12px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  background-image: linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.language-dropdown:hover {
+  border-color: #667eea;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+  transform: translateY(-2px);
+}
+
+.language-dropdown:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
 textarea {
   width: 100%;
   padding: 15px;
@@ -567,7 +593,7 @@ input[type="text"]:focus {
 <div class="container">
   <div class="header">
     <h1><i class="fas fa-code"></i> Code Quality Analyzer</h1>
-    <p><i class="fas fa-globe"></i> Supporting 40+ Programming Languages with AI-Powered Insights</p>
+    <p>AI-Powered Static Code Analysis</p>
   </div>
   
   <div class="content">
@@ -577,197 +603,74 @@ input[type="text"]:focus {
     
     <form method="post" id="analyzeForm">
       <div class="form-group">
-        <label><i class="fas fa-laptop-code"></i> Select Programming Language:</label>
-        <div class="language-selector">
-          <div class="language-option">
-            <input type="radio" name="lang" value="python" id="lang-python" {% if not request.form.get('lang') or request.form.get('lang') == 'python' %}checked{% endif %}>
-            <label for="lang-python"><i class="fab fa-python"></i> Python</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="javascript" id="lang-js" {% if request.form.get('lang') == 'javascript' %}checked{% endif %}>
-            <label for="lang-js"><i class="fab fa-js"></i> JavaScript</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="typescript" id="lang-ts" {% if request.form.get('lang') == 'typescript' %}checked{% endif %}>
-            <label for="lang-ts"><i class="fas fa-file-code"></i> TypeScript</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="java" id="lang-java" {% if request.form.get('lang') == 'java' %}checked{% endif %}>
-            <label for="lang-java"><i class="fab fa-java"></i> Java</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="cpp" id="lang-cpp" {% if request.form.get('lang') == 'cpp' %}checked{% endif %}>
-            <label for="lang-cpp"><i class="fas fa-copyright"></i> C/C++</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="csharp" id="lang-csharp" {% if request.form.get('lang') == 'csharp' %}checked{% endif %}>
-            <label for="lang-csharp"><i class="fas fa-hashtag"></i> C#</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="go" id="lang-go" {% if request.form.get('lang') == 'go' %}checked{% endif %}>
-            <label for="lang-go"><i class="fas fa-cubes"></i> Go</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="rust" id="lang-rust" {% if request.form.get('lang') == 'rust' %}checked{% endif %}>
-            <label for="lang-rust"><i class="fas fa-gear"></i> Rust</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="ruby" id="lang-ruby" {% if request.form.get('lang') == 'ruby' %}checked{% endif %}>
-            <label for="lang-ruby"><i class="far fa-gem"></i> Ruby</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="php" id="lang-php" {% if request.form.get('lang') == 'php' %}checked{% endif %}>
-            <label for="lang-php"><i class="fab fa-php"></i> PHP</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="swift" id="lang-swift" {% if request.form.get('lang') == 'swift' %}checked{% endif %}>
-            <label for="lang-swift"><i class="fab fa-swift"></i> Swift</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="kotlin" id="lang-kotlin" {% if request.form.get('lang') == 'kotlin' %}checked{% endif %}>
-            <label for="lang-kotlin"><i class="fas fa-k"></i> Kotlin</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="scala" id="lang-scala" {% if request.form.get('lang') == 'scala' %}checked{% endif %}>
-            <label for="lang-scala"><i class="fas fa-s"></i> Scala</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="perl" id="lang-perl" {% if request.form.get('lang') == 'perl' %}checked{% endif %}>
-            <label for="lang-perl"><i class="fas fa-file-code"></i> Perl</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="r" id="lang-r" {% if request.form.get('lang') == 'r' %}checked{% endif %}>
-            <label for="lang-r"><i class="fab fa-r-project"></i> R</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="matlab" id="lang-matlab" {% if request.form.get('lang') == 'matlab' %}checked{% endif %}>
-            <label for="lang-matlab"><i class="fas fa-calculator"></i> MATLAB</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="dart" id="lang-dart" {% if request.form.get('lang') == 'dart' %}checked{% endif %}>
-            <label for="lang-dart"><i class="fas fa-d"></i> Dart</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="elixir" id="lang-elixir" {% if request.form.get('lang') == 'elixir' %}checked{% endif %}>
-            <label for="lang-elixir"><i class="fas fa-flask"></i> Elixir</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="haskell" id="lang-haskell" {% if request.form.get('lang') == 'haskell' %}checked{% endif %}>
-            <label for="lang-haskell"><i class="fas fa-h"></i> Haskell</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="lua" id="lang-lua" {% if request.form.get('lang') == 'lua' %}checked{% endif %}>
-            <label for="lang-lua"><i class="fas fa-moon"></i> Lua</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="shell" id="lang-shell" {% if request.form.get('lang') == 'shell' %}checked{% endif %}>
-            <label for="lang-shell"><i class="fas fa-terminal"></i> Shell</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="powershell" id="lang-powershell" {% if request.form.get('lang') == 'powershell' %}checked{% endif %}>
-            <label for="lang-powershell"><i class="fas fa-terminal"></i> PowerShell</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="sql" id="lang-sql" {% if request.form.get('lang') == 'sql' %}checked{% endif %}>
-            <label for="lang-sql"><i class="fas fa-database"></i> SQL</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="html" id="lang-html" {% if request.form.get('lang') == 'html' %}checked{% endif %}>
-            <label for="lang-html"><i class="fab fa-html5"></i> HTML</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="css" id="lang-css" {% if request.form.get('lang') == 'css' %}checked{% endif %}>
-            <label for="lang-css"><i class="fab fa-css3"></i> CSS</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="xml" id="lang-xml" {% if request.form.get('lang') == 'xml' %}checked{% endif %}>
-            <label for="lang-xml"><i class="fas fa-code"></i> XML</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="yaml" id="lang-yaml" {% if request.form.get('lang') == 'yaml' %}checked{% endif %}>
-            <label for="lang-yaml"><i class="fas fa-file-code"></i> YAML</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="json" id="lang-json" {% if request.form.get('lang') == 'json' %}checked{% endif %}>
-            <label for="lang-json"><i class="fas fa-brackets-curly"></i> JSON</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="markdown" id="lang-markdown" {% if request.form.get('lang') == 'markdown' %}checked{% endif %}>
-            <label for="lang-markdown"><i class="fab fa-markdown"></i> Markdown</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="clojure" id="lang-clojure" {% if request.form.get('lang') == 'clojure' %}checked{% endif %}>
-            <label for="lang-clojure"><i class="fas fa-copyright"></i> Clojure</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="erlang" id="lang-erlang" {% if request.form.get('lang') == 'erlang' %}checked{% endif %}>
-            <label for="lang-erlang"><i class="fas fa-e"></i> Erlang</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="fsharp" id="lang-fsharp" {% if request.form.get('lang') == 'fsharp' %}checked{% endif %}>
-            <label for="lang-fsharp"><i class="fas fa-hashtag"></i> F#</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="groovy" id="lang-groovy" {% if request.form.get('lang') == 'groovy' %}checked{% endif %}>
-            <label for="lang-groovy"><i class="fas fa-g"></i> Groovy</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="julia" id="lang-julia" {% if request.form.get('lang') == 'julia' %}checked{% endif %}>
-            <label for="lang-julia"><i class="fas fa-j"></i> Julia</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="objectivec" id="lang-objectivec" {% if request.form.get('lang') == 'objectivec' %}checked{% endif %}>
-            <label for="lang-objectivec"><i class="fab fa-apple"></i> Objective-C</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="vb" id="lang-vb" {% if request.form.get('lang') == 'vb' %}checked{% endif %}>
-            <label for="lang-vb"><i class="fas fa-v"></i> Visual Basic</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="assembly" id="lang-assembly" {% if request.form.get('lang') == 'assembly' %}checked{% endif %}>
-            <label for="lang-assembly"><i class="fas fa-microchip"></i> Assembly</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="fortran" id="lang-fortran" {% if request.form.get('lang') == 'fortran' %}checked{% endif %}>
-            <label for="lang-fortran"><i class="fas fa-f"></i> Fortran</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="cobol" id="lang-cobol" {% if request.form.get('lang') == 'cobol' %}checked{% endif %}>
-            <label for="lang-cobol"><i class="fas fa-cubes"></i> COBOL</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="pascal" id="lang-pascal" {% if request.form.get('lang') == 'pascal' %}checked{% endif %}>
-            <label for="lang-pascal"><i class="fas fa-p"></i> Pascal</label>
-          </div>
-          <div class="language-option">
-            <input type="radio" name="lang" value="solidity" id="lang-solidity" {% if request.form.get('lang') == 'solidity' %}checked{% endif %}>
-            <label for="lang-solidity"><i class="fab fa-ethereum"></i> Solidity</label>
-          </div>
-        </div>
+        <label><i class="fas fa-laptop-code"></i> Programming Language</label>
+        <select name="lang" id="langSelect" class="language-dropdown">
+          <option value="python" {% if not request.form.get('lang') or request.form.get('lang') == 'python' %}selected{% endif %}>🐍 Python</option>
+          <option value="javascript" {% if request.form.get('lang') == 'javascript' %}selected{% endif %}>💛 JavaScript</option>
+          <option value="typescript" {% if request.form.get('lang') == 'typescript' %}selected{% endif %}>💙 TypeScript</option>
+          <option value="java" {% if request.form.get('lang') == 'java' %}selected{% endif %}>☕ Java</option>
+          <option value="cpp" {% if request.form.get('lang') == 'cpp' %}selected{% endif %}>⚡ C/C++</option>
+          <option value="csharp" {% if request.form.get('lang') == 'csharp' %}selected{% endif %}>🔷 C#</option>
+          <option value="go" {% if request.form.get('lang') == 'go' %}selected{% endif %}>🔵 Go</option>
+          <option value="rust" {% if request.form.get('lang') == 'rust' %}selected{% endif %}>🦀 Rust</option>
+          <option value="ruby" {% if request.form.get('lang') == 'ruby' %}selected{% endif %}>💎 Ruby</option>
+          <option value="php" {% if request.form.get('lang') == 'php' %}selected{% endif %}>🐘 PHP</option>
+          <option value="swift" {% if request.form.get('lang') == 'swift' %}selected{% endif %}>🍎 Swift</option>
+          <option value="kotlin" {% if request.form.get('lang') == 'kotlin' %}selected{% endif %}>🎯 Kotlin</option>
+          <option value="scala" {% if request.form.get('lang') == 'scala' %}selected{% endif %}>📊 Scala</option>
+          <option value="perl" {% if request.form.get('lang') == 'perl' %}selected{% endif %}>🐪 Perl</option>
+          <option value="r" {% if request.form.get('lang') == 'r' %}selected{% endif %}>📈 R</option>
+          <option value="matlab" {% if request.form.get('lang') == 'matlab' %}selected{% endif %}>🧮 MATLAB</option>
+          <option value="dart" {% if request.form.get('lang') == 'dart' %}selected{% endif %}>🎯 Dart</option>
+          <option value="elixir" {% if request.form.get('lang') == 'elixir' %}selected{% endif %}>💧 Elixir</option>
+          <option value="haskell" {% if request.form.get('lang') == 'haskell' %}selected{% endif %}>λ Haskell</option>
+          <option value="lua" {% if request.form.get('lang') == 'lua' %}selected{% endif %}>🌙 Lua</option>
+          <option value="shell" {% if request.form.get('lang') == 'shell' %}selected{% endif %}>🐚 Shell</option>
+          <option value="powershell" {% if request.form.get('lang') == 'powershell' %}selected{% endif %}>⚙️ PowerShell</option>
+          <option value="sql" {% if request.form.get('lang') == 'sql' %}selected{% endif %}>🗄️ SQL</option>
+          <option value="html" {% if request.form.get('lang') == 'html' %}selected{% endif %}>🌐 HTML</option>
+          <option value="css" {% if request.form.get('lang') == 'css' %}selected{% endif %}>🎨 CSS</option>
+          <option value="xml" {% if request.form.get('lang') == 'xml' %}selected{% endif %}>📋 XML</option>
+          <option value="yaml" {% if request.form.get('lang') == 'yaml' %}selected{% endif %}>📄 YAML</option>
+          <option value="json" {% if request.form.get('lang') == 'json' %}selected{% endif %}>📦 JSON</option>
+          <option value="markdown" {% if request.form.get('lang') == 'markdown' %}selected{% endif %}>📝 Markdown</option>
+          <option value="clojure" {% if request.form.get('lang') == 'clojure' %}selected{% endif %}>🔮 Clojure</option>
+          <option value="erlang" {% if request.form.get('lang') == 'erlang' %}selected{% endif %}>📡 Erlang</option>
+          <option value="fsharp" {% if request.form.get('lang') == 'fsharp' %}selected{% endif %}>🔶 F#</option>
+          <option value="groovy" {% if request.form.get('lang') == 'groovy' %}selected{% endif %}>🎵 Groovy</option>
+          <option value="julia" {% if request.form.get('lang') == 'julia' %}selected{% endif %}>🔬 Julia</option>
+          <option value="objectivec" {% if request.form.get('lang') == 'objectivec' %}selected{% endif %}>🍏 Objective-C</option>
+          <option value="vb" {% if request.form.get('lang') == 'vb' %}selected{% endif %}>📘 Visual Basic</option>
+          <option value="assembly" {% if request.form.get('lang') == 'assembly' %}selected{% endif %}>⚙️ Assembly</option>
+          <option value="fortran" {% if request.form.get('lang') == 'fortran' %}selected{% endif %}>🔢 Fortran</option>
+          <option value="cobol" {% if request.form.get('lang') == 'cobol' %}selected{% endif %}>💼 COBOL</option>
+          <option value="pascal" {% if request.form.get('lang') == 'pascal' %}selected{% endif %}>🎓 Pascal</option>
+          <option value="solidity" {% if request.form.get('lang') == 'solidity' %}selected{% endif %}>⛓️ Solidity</option>
+        </select>
       </div>
       
       <div class="form-group">
-        <label><i class="fas fa-code"></i> Enter Your Code:</label>
+        <label><i class="fas fa-code"></i> Code</label>
         <div style="margin-bottom: 10px;">
-          <button type="button" class="btn-example" onclick="loadExample()"><i class="fas fa-book"></i> Load Example Code</button>
+          <button type="button" class="btn-example" onclick="loadExample()"><i class="fas fa-book"></i> Load Example</button>
         </div>
         <textarea name="code" id="codeTextarea" rows="18" placeholder="Paste your code here for analysis...">{{ request.form.get('code', '') }}</textarea>
       </div>
       
       <div class="advanced-options">
         <button type="button" class="toggle-advanced" onclick="toggleAdvanced()">
-          <i class="fas fa-cog"></i> Advanced Options
+          <i class="fas fa-cog"></i> Advanced
           <i class="fas fa-chevron-down"></i>
         </button>
         <div class="advanced-content" id="advancedContent">
           <div class="form-group">
-            <label><i class="fas fa-robot"></i> ML Model Path (Optional):</label>
+            <label><i class="fas fa-robot"></i> ML Model Path</label>
             <input type="text" name="model" value="{{ request.form.get('model', 'models/code_quality_model.joblib') }}" placeholder="Path to ML model file">
           </div>
         </div>
       </div>
       
-      <button type="submit" class="btn-analyze"><i class="fas fa-rocket"></i> Analyze Code</button>
+      <button type="submit" class="btn-analyze"><i class="fas fa-rocket"></i> Analyze</button>
     </form>
     
     <div class="loading" id="loading">
@@ -778,7 +681,7 @@ input[type="text"]:focus {
     {% if analysis %}
     <div class="results">
       <div class="score-card">
-        <h2><i class="fas fa-chart-line"></i> Overall Quality Score</h2>
+        <h2><i class="fas fa-chart-line"></i> Quality Score</h2>
         <div class="score-number">{{ analysis.quality_score }}<span style="font-size: 0.5em;">/100</span></div>
         {% if analysis.quality_score >= 80 %}
         <span class="badge badge-good">Excellent</span>
@@ -790,7 +693,7 @@ input[type="text"]:focus {
       </div>
       
       <div class="section">
-        <h3><i class="fas fa-bug"></i> Code Smells Detected ({{ analysis.smells|length }})</h3>
+        <h3><i class="fas fa-bug"></i> Code Smells ({{ analysis.smells|length }})</h3>
         {% if analysis.smells %}
         {% for s in analysis.smells %}
         <div class="smell-item">
@@ -806,7 +709,7 @@ input[type="text"]:focus {
       
       {% if analysis.suggestions %}
       <div class="section">
-        <h3><i class="fas fa-lightbulb"></i> Improvement Suggestions</h3>
+        <h3><i class="fas fa-lightbulb"></i> Suggestions</h3>
         {% for s in analysis.suggestions %}
         <div class="suggestion-item">
           <strong>{{ s.smell.kind }}:</strong>
@@ -1124,7 +1027,7 @@ function increment() {
 };
 
 function loadExample() {
-  const selectedLang = document.querySelector('input[name="lang"]:checked').value;
+  const selectedLang = document.getElementById('langSelect').value;
   const codeTextarea = document.getElementById('codeTextarea');
   
   if (examples[selectedLang]) {
