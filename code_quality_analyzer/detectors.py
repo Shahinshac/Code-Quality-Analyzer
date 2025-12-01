@@ -447,13 +447,14 @@ class RuleBasedDetector:
         """Detect issues for any supported language"""
         smells = []
         
-        if language == 'python':
+        # Map language names to detection methods
+        if language in ['python', 'py']:
             smells.extend(self.detect_all(source))
-        elif language in ['javascript', 'typescript']:
+        elif language in ['javascript', 'typescript', 'js', 'ts']:
             smells.extend(self.detect_javascript_issues(source))
         elif language == 'java':
             smells.extend(self.detect_java_issues(source))
-        elif language == 'cpp':
+        elif language in ['cpp', 'c', 'csharp', 'c++']:
             smells.extend(self.detect_cpp_issues(source))
         elif language == 'go':
             smells.extend(self.detect_go_issues(source))
@@ -463,6 +464,137 @@ class RuleBasedDetector:
             smells.extend(self.detect_ruby_issues(source))
         elif language == 'php':
             smells.extend(self.detect_php_issues(source))
+        else:
+            # For all other languages, use generic code analysis
+            smells.extend(self._generic_code_analysis(source, language))
+        
+        return smells
+    
+    def _generic_code_analysis(self, source: str, language: str) -> List[CodeSmell]:
+        """Generic code analysis for any programming language"""
+        smells = []
+        lines = source.splitlines()
+        
+        # Generic code quality checks
+        
+        # 1. Check for very long lines (> 120 characters)
+        for i, line in enumerate(lines, 1):
+            if len(line.strip()) > 120:
+                smells.append(CodeSmell(
+                    'long_line',
+                    f'Line {i} exceeds 120 characters ({len(line)} chars)',
+                    i
+                ))
+        
+        # 2. Check for deep nesting (count indentation)
+        max_nesting = 0
+        for i, line in enumerate(lines, 1):
+            if line.strip():
+                # Count leading spaces/tabs
+                indent = len(line) - len(line.lstrip())
+                nesting_level = indent // 2 if ' ' in line[:indent] else indent
+                if nesting_level > max_nesting:
+                    max_nesting = nesting_level
+                if nesting_level > 5:
+                    smells.append(CodeSmell(
+                        'deep_nesting',
+                        f'Line {i} has deep nesting (level {nesting_level})',
+                        i
+                    ))
+        
+        # 3. Check for very long functions/methods (basic heuristic)
+        function_patterns = {
+            'swift': r'func\s+\w+',
+            'kotlin': r'fun\s+\w+',
+            'scala': r'def\s+\w+',
+            'perl': r'sub\s+\w+',
+            'r': r'<-\s*function',
+            'matlab': r'function\s+',
+            'dart': r'\w+\s+\w+\([^)]*\)\s*{',
+            'elixir': r'def\s+\w+',
+            'haskell': r'\w+\s+::\s+',
+            'lua': r'function\s+\w+',
+            'shell': r'function\s+\w+|^\w+\(\)\s*{',
+            'powershell': r'function\s+\w+',
+            'groovy': r'def\s+\w+',
+            'julia': r'function\s+\w+',
+            'objectivec': r'[-+]\s*\([^)]+\)\s*\w+',
+            'vb': r'(Sub|Function)\s+\w+',
+            'assembly': r'^\w+:',
+            'fortran': r'(SUBROUTINE|FUNCTION)\s+\w+',
+            'cobol': r'PROCEDURE\s+DIVISION',
+            'pascal': r'(procedure|function)\s+\w+',
+            'solidity': r'function\s+\w+',
+            'fsharp': r'let\s+\w+',
+            'clojure': r'\(defn\s+\w+',
+            'erlang': r'\w+\([^)]*\)\s*->',
+        }
+        
+        pattern = function_patterns.get(language.lower(), r'(function|def|func)\s+\w+')
+        func_starts = []
+        
+        try:
+            for i, line in enumerate(lines, 1):
+                if re.search(pattern, line, re.IGNORECASE):
+                    func_starts.append(i)
+            
+            # Check function lengths
+            for idx, start in enumerate(func_starts):
+                end = func_starts[idx + 1] if idx + 1 < len(func_starts) else len(lines)
+                func_length = end - start
+                if func_length > 50:
+                    smells.append(CodeSmell(
+                        'long_function',
+                        f'Function starting at line {start} is too long ({func_length} lines)',
+                        start
+                    ))
+        except Exception:
+            pass
+        
+        # 4. Check for TODO/FIXME comments
+        for i, line in enumerate(lines, 1):
+            if re.search(r'(TODO|FIXME|XXX|HACK|BUG)', line, re.IGNORECASE):
+                smells.append(CodeSmell(
+                    'todo_comment',
+                    f'Line {i} contains TODO/FIXME comment',
+                    i
+                ))
+        
+        # 5. Check for commented out code (lines starting with // or # or /* )
+        comment_count = 0
+        for i, line in enumerate(lines, 1):
+            stripped = line.strip()
+            if stripped.startswith(('///', '###', '/*', '<!--')) or \
+               (stripped.startswith(('// ', '# ')) and '=' in stripped):
+                comment_count += 1
+        
+        if comment_count > len(lines) * 0.2:  # More than 20% comments
+            smells.append(CodeSmell(
+                'excessive_comments',
+                f'File has {comment_count} commented lines ({comment_count/len(lines)*100:.1f}%)',
+                None
+            ))
+        
+        # 6. Check for trailing whitespace
+        trailing_ws_count = 0
+        for i, line in enumerate(lines, 1):
+            if line.rstrip() != line and line.strip():
+                trailing_ws_count += 1
+        
+        if trailing_ws_count > 5:
+            smells.append(CodeSmell(
+                'trailing_whitespace',
+                f'Found {trailing_ws_count} lines with trailing whitespace',
+                None
+            ))
+        
+        # 7. Language-specific suggestions
+        if not smells:
+            smells.append(CodeSmell(
+                'analysis_complete',
+                f'Basic {language} analysis completed - no major issues found!',
+                None
+            ))
         
         return smells
 
