@@ -1,0 +1,31 @@
+# Core dependencies
+flask
+gunicorn
+requests
+
+# Machine Learning
+scikit-learn
+pandas
+joblib
+
+# Python analysis tools
+flake8
+pylint
+autopep8
+astunparse
+
+# Testing
+pytest
+
+# Web interface
+streamlit
+
+# Multi-language support (optional linters - install via system package managers)
+# JavaScript/TypeScript: npm install -g eslint
+# Java: apt-get install checkstyle / brew install checkstyle
+# C/C++: apt-get install cppcheck / brew install cppcheck
+# Go: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+# Rust: rustup component add clippy
+# Ruby: gem install rubocop
+# PHP: composer global require squizlabs/php_codesniffer
+
