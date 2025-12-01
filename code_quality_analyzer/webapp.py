@@ -782,7 +782,10 @@ input[type="text"]:focus {
         <div class="advanced-content" id="advancedContent">
           <div class="form-group">
             <label><i class="fas fa-robot"></i> ML Model Path</label>
-            <input type="text" name="model" value="{{ request.form.get('model', 'models/code_quality_model.joblib') }}" placeholder="Path to ML model file">
+            <input type="text" name="model" value="" placeholder="Optional: Path to ML model file (leave empty to skip ML classification)">
+            <small style="color: var(--text-color); opacity: 0.7; display: block; margin-top: 5px;">
+              <i class="fas fa-info-circle"></i> ML classification is optional. Leave blank to analyze without it.
+            </small>
           </div>
         </div>
       </div>
@@ -926,9 +929,20 @@ def create_app():
                 
                 lang = request.form.get('lang', 'py')
                 # first check form input; fallback to environment variable MODEL_PATH
-                model_path = request.form.get('model')
+                model_path = request.form.get('model', '').strip()
                 if not model_path:
                     model_path = os.environ.get('MODEL_PATH')
+                    # Try to find model in common locations
+                    if not model_path:
+                        possible_paths = [
+                            'models/code_quality_model.joblib',
+                            '../models/code_quality_model.joblib',
+                            os.path.join(os.path.dirname(__file__), '..', 'models', 'code_quality_model.joblib'),
+                        ]
+                        for path in possible_paths:
+                            if os.path.exists(path):
+                                model_path = path
+                                break
                 
                 detector = RuleBasedDetector()
                 if lang == 'java':
@@ -943,9 +957,12 @@ def create_app():
                         label, prob = predict_code_quality(code, model_path)
                         ml_result = {'label': label, 'confidence': prob}
                     except Exception as e:
-                        ml_result = {'error': f'Failed to use model: {str(e)}'}
-                elif model_path:
-                    ml_result = {'error': 'Model file not found'}
+                        ml_result = {'error': f'ML prediction failed: {str(e)}'}
+                else:
+                    # ML is optional - don't show error if no model path provided
+                    if model_path:
+                        ml_result = {'error': f'Model file not found: {model_path}'}
+                    # If no model path at all, ml_result stays None (hidden in template)
                 
                 # compute quality score even if ML not used
                 score = compute_quality_score(None, None, smells)
