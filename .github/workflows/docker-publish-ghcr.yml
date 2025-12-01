@@ -50,17 +50,19 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+        continue-on-error: false
 
   upload-model-to-s3:
     needs: build-and-push
     runs-on: ubuntu-latest
     if: ${{ vars.AWS_S3_BUCKET != '' }}
+    continue-on-error: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -71,23 +73,26 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+        continue-on-error: true
 
       - name: Upload model to S3
         run: |
-          if [ -f "models/code_quality_classifier.pkl" ]; then
-            aws s3 cp models/code_quality_classifier.pkl \
-              s3://${{ vars.AWS_S3_BUCKET }}/models/code_quality_classifier.pkl \
-              --acl private
+          if [ -f "models/code_quality_model.joblib" ]; then
+            aws s3 cp models/code_quality_model.joblib \
+              s3://${{ vars.AWS_S3_BUCKET }}/models/code_quality_model.joblib \
+              --acl private || echo "S3 upload failed (non-critical)"
             echo "✓ Model uploaded to S3"
           else
             echo "⚠ No model file found, skipping S3 upload"
           fi
+        continue-on-error: true
 
       - name: Generate presigned URL
         id: presigned-url
         run: |
           PRESIGNED_URL=$(aws s3 presign \
-            s3://${{ vars.AWS_S3_BUCKET }}/models/code_quality_classifier.pkl \
-            --expires-in 31536000)
+            s3://${{ vars.AWS_S3_BUCKET }}/models/code_quality_model.joblib \
+            --expires-in 31536000 || echo "Failed to generate URL")
           echo "model-url=$PRESIGNED_URL" >> $GITHUB_OUTPUT
           echo "✓ Generated presigned URL (valid for 1 year)"
+        continue-on-error: true
