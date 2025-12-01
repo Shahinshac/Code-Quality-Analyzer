@@ -512,54 +512,6 @@ input[type="text"]:focus {
 .badge-bad { background: #ff6b6b; color: white; }
 .badge-warning { background: #ffa500; color: white; }
 
-.advanced-options {
-  margin-top: 15px;
-  border-top: 2px solid #e0e0e0;
-  padding-top: 15px;
-}
-
-.toggle-advanced {
-  background: transparent;
-  color: #667eea;
-  border: 2px solid #667eea;
-  padding: 10px 20px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
-
-.toggle-advanced:hover {
-  background: #667eea;
-  color: white;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
-
-.toggle-advanced i {
-  transition: transform 0.3s ease;
-}
-
-.toggle-advanced.active i {
-  transform: rotate(180deg);
-}
-
-.advanced-content {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.advanced-content.show {
-  max-height: 200px;
-  margin-top: 15px;
-}
-
 .file-upload-zone {
   border: 3px dashed var(--border-color);
   border-radius: 15px;
@@ -888,22 +840,6 @@ input[type="text"]:focus {
         
         <textarea name="code" id="codeTextarea" rows="18" placeholder="Paste your code here for analysis...">{{ request.form.get('code', '') }}</textarea>
         <div class="char-counter" id="charCounter">0 characters</div>
-      </div>
-      
-      <div class="advanced-options">
-        <button type="button" class="toggle-advanced" onclick="toggleAdvanced()">
-          <i class="fas fa-cog"></i> Advanced
-          <i class="fas fa-chevron-down"></i>
-        </button>
-        <div class="advanced-content" id="advancedContent">
-          <div class="form-group">
-            <label><i class="fas fa-robot"></i> ML Model Path</label>
-            <input type="text" name="model" value="" placeholder="Optional: Path to ML model file (leave empty to skip ML classification)">
-            <small style="color: var(--text-color); opacity: 0.7; display: block; margin-top: 5px;">
-              <i class="fas fa-info-circle"></i> ML classification is optional. Leave blank to analyze without it.
-            </small>
-          </div>
-        </div>
       </div>
       
       <button type="submit" class="btn-analyze"><i class="fas fa-rocket"></i> Analyze</button>
@@ -1268,20 +1204,6 @@ window.addEventListener('DOMContentLoaded', function() {
   }
 });
 
-// Example code snippets
-function toggleAdvanced() {
-  const content = document.getElementById('advancedContent');
-  const button = document.querySelector('.toggle-advanced');
-  const icon = button.querySelector('.fa-chevron-down');
-  
-  content.classList.toggle('show');
-  
-  if (content.classList.contains('show')) {
-    icon.style.transform = 'rotate(180deg)';
-  } else {
-    icon.style.transform = 'rotate(0deg)';
-  }
-}
 </body>
 </html>
 """
@@ -1316,28 +1238,24 @@ def create_app():
                     error = 'Please provide some code to analyze'
                     return render_template_string(TEMPLATE, analysis=None, error=error)
                 
-                lang = request.form.get('lang', 'py')
-                # first check form input; fallback to environment variable MODEL_PATH
-                model_path = request.form.get('model', '').strip()
+                lang = request.form.get('lang', 'python')
+                
+                # Try to find model in common locations
+                model_path = os.environ.get('MODEL_PATH')
                 if not model_path:
-                    model_path = os.environ.get('MODEL_PATH')
-                    # Try to find model in common locations
-                    if not model_path:
-                        possible_paths = [
-                            'models/code_quality_model.joblib',
-                            '../models/code_quality_model.joblib',
-                            os.path.join(os.path.dirname(__file__), '..', 'models', 'code_quality_model.joblib'),
-                        ]
-                        for path in possible_paths:
-                            if os.path.exists(path):
-                                model_path = path
-                                break
+                    possible_paths = [
+                        'models/code_quality_model.joblib',
+                        '../models/code_quality_model.joblib',
+                        os.path.join(os.path.dirname(__file__), '..', 'models', 'code_quality_model.joblib'),
+                    ]
+                    for path in possible_paths:
+                        if os.path.exists(path):
+                            model_path = path
+                            break
                 
                 detector = RuleBasedDetector()
-                if lang == 'java':
-                    smells = detector.detect_java_issues(code)
-                else:
-                    smells = detector.detect_all(code)
+                # Use language-specific detection
+                smells = detector.detect_all_languages(code, lang)
                 
                 suggestions = suggestions_for_smells(smells)
                 ml_result = None
