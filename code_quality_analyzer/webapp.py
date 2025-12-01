@@ -9,24 +9,52 @@ TEMPLATE = """
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
 <title>Code Quality Analyzer - 40+ Programming Languages</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
+:root {
+  --primary-color: #667eea;
+  --secondary-color: #764ba2;
+  --success-color: #51cf66;
+  --error-color: #ff6b6b;
+  --warning-color: #ffa500;
+  --bg-color: #ffffff;
+  --text-color: #333333;
+  --card-bg: #ffffff;
+  --input-bg: #f9f9f9;
+  --border-color: #ddd;
+}
+
+.dark-mode {
+  --bg-color: #1a1a2e;
+  --text-color: #eee;
+  --card-bg: #16213e;
+  --input-bg: #0f3460;
+  --border-color: #2a2a40;
+}
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   background-attachment: fixed;
   min-height: 100vh;
   padding: 20px;
+  transition: all 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  body {
+    padding: 10px;
+  }
 }
 
 .container {
   max-width: 1400px;
   margin: 0 auto;
-  background: white;
+  background: var(--card-bg);
   border-radius: 20px;
   box-shadow: 0 20px 60px rgba(0,0,0,0.3);
   overflow: hidden;

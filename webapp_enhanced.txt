@@ -1,0 +1,26 @@
+# Enhanced Features to Add:
+
+## 1. Dark Mode Toggle
+- CSS variables for theme switching
+- LocalStorage persistence
+- Smooth transitions
+
+## 2. Mobile Responsiveness
+- Responsive grid layouts
+- Touch-friendly buttons
+- Adaptive font sizes
+- Proper viewport settings
+
+## 3. Additional Features
+- Copy buttons for smells/suggestions
+- Download report as text file
+- Statistics cards
+- Hover animations
+- Better icons with context
+
+## 4. Accessibility
+- Proper ARIA labels
+- Keyboard navigation
+- Screen reader support
+
+Implementation in progress...
