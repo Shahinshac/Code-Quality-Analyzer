@@ -1,14 +1,26 @@
 # Code Quality Analyzer with AI
 
-A minimal prototype for an AI-powered code quality analyzer. This project is a small, extendable demo that includes:
+A comprehensive AI-powered code quality analyzer with multi-language support. This tool analyzes code quality across multiple programming languages using:
 
-- AST-based parsing to extract code metrics
-- Rule-based detectors for code smells (long functions, unused imports, deep nesting)
- - Rule-based detectors for code smells (long functions, unused imports, deep nesting); includes Python linting (`flake8`, `pylint`) and basic Java heuristics for long methods and deep nesting
-- A simple ML classifier using scikit-learn to classify code snippets as "good" or "bad"
-- A CLI to analyze files and a small Flask web UI to upload and analyze code
- - A CLI to analyze files and a small Flask web UI to upload and analyze code (includes autofix option using `autopep8`) 
-- Sample dataset and unit tests
+- **Multi-language parsing** to extract code metrics from Python, JavaScript, TypeScript, Java, C++, Go, Rust, Ruby, and PHP
+- **Rule-based detectors** for code smells (long functions, unused imports, deep nesting, complexity)
+- **Language-specific linters** integration (flake8, pylint, ESLint, Checkstyle, cppcheck, golangci-lint, clippy, RuboCop, PHP_CodeSniffer)
+- **ML classifier** using scikit-learn to classify code snippets as "good" or "bad"
+- **CLI** to analyze files and **Flask web UI** to upload and analyze code with autofix options
+- Sample dataset and comprehensive unit tests
+
+## Supported Languages
+
+| Language       | Parser Type | Linter Integration       | Status |
+|----------------|-------------|--------------------------|--------|
+| Python         | AST         | flake8, pylint           | ✅ Full |
+| JavaScript/TS  | Regex       | ESLint                   | ✅ Full |
+| Java           | Regex       | Checkstyle, PMD          | ✅ Full |
+| C/C++          | Regex       | cppcheck, clang-tidy     | ✅ Full |
+| Go             | Regex       | golangci-lint            | ✅ Full |
+| Rust           | Regex       | clippy                   | ✅ Full |
+| Ruby           | Regex       | RuboCop                  | ✅ Full |
+| PHP            | Regex       | PHP_CodeSniffer          | ✅ Full |
 
 ## Quickstart
 
@@ -19,19 +31,54 @@ A minimal prototype for an AI-powered code quality analyzer. This project is a s
 pip install -r requirements.txt
 ```
 
-3. Train a small demo model (optional):
+3. (Optional) Install language-specific linters for enhanced analysis:
+
+```powershell
+# JavaScript/TypeScript
+npm install -g eslint
+
+# Java (Ubuntu/Debian)
+apt-get install checkstyle
+
+# C/C++ (Ubuntu/Debian)
+apt-get install cppcheck
+
+# Go
+go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+# Rust
+rustup component add clippy
+
+# Ruby
+gem install rubocop
+
+# PHP
+composer global require squizlabs/php_codesniffer
+```
+
+4. Train a small demo model (optional):
 
 ```powershell
 python -m code_quality_analyzer.cli train --dataset datasets/synthetic_dataset.csv --model-out models/code_quality_model.joblib
 ```
 
-4. Analyze a Python file:
+5. Analyze any supported file:
 
 ```powershell
+# Python
 python -m code_quality_analyzer.cli analyze --file examples/bad_example.py --model models/code_quality_model.joblib
+
+# JavaScript
+python -m code_quality_analyzer.cli analyze --file app.js --model models/code_quality_model.joblib
+
+# Java
+python -m code_quality_analyzer.cli analyze --file Main.java --model models/code_quality_model.joblib
+
+# Any supported language (auto-detected by extension)
+python -m code_quality_analyzer.cli analyze --file <your-file> --model models/code_quality_model.joblib
 ```
 
-5. Run the web app:
+6. Run the web app:
 
 ```powershell
 python -m code_quality_analyzer.webapp
@@ -40,30 +87,56 @@ python -m code_quality_analyzer.webapp
 ## Project Structure
 
 - `code_quality_analyzer/` - main package
-  - `parser.py` - AST parsing and feature extraction
-  - `detectors.py` - rule-based detectors for code smells
-  - `ml_classifier.py` - model training and prediction helpers
-  - `suggestion_engine.py` - auto-fix suggestions
-  - `cli.py` - CLI wrapper
+  - `parser.py` - Multi-language parsing and feature extraction (Python AST, regex-based for others)
+  - `detectors.py` - Rule-based detectors and linter integrations for all supported languages
+  - `ml_classifier.py` - Model training and prediction helpers
+  - `suggestion_engine.py` - Auto-fix suggestions
+  - `cli.py` - CLI wrapper with multi-language support
   - `webapp.py` - Flask demo for uploading and analyzing code
-- `datasets/` - small synthetic datasets
-- `examples/` - sample Python files
-- `tests/` - unit tests
-- `requirements.txt` - required Python packages
+- `datasets/` - Small synthetic datasets
+- `examples/` - Sample files in various languages
+- `tests/` - Unit tests
+- `requirements.txt` - Required Python packages
+
+## Multi-Language Analysis Examples
+
+### Python Analysis
+```python
+from code_quality_analyzer.parser import extract_features_from_file
+from code_quality_analyzer.detectors import RuleBasedDetector
+
+features = extract_features_from_file('script.py')
+detector = RuleBasedDetector()
+issues = detector.detect_all_languages(source_code, 'python')
+```
+
+### JavaScript/TypeScript Analysis
+```python
+features = extract_features_from_file('app.js')
+issues = detector.detect_all_languages(source_code, 'javascript')
+```
+
+### Java Analysis
+```python
+features = extract_features_from_file('Main.java')
+issues = detector.detect_all_languages(source_code, 'java')
+```
+
+Language detection is automatic based on file extension.
 
 ## Notes
-This project is a prototype; you can extend it with:
-- More rule checks (pylint/flake8 integration)
- - More rule checks (pylint/flake8 integration) — this prototype includes a basic flake8 integration which will report common issues.
-- Better ML dataset and more sophisticated features (token-based embeddings)
-- Auto-fix engine that rewrites code (using `ast` and `astor` or `libcst`)
-- CI integration for SCAN across repositories
+This project supports comprehensive multi-language analysis. You can extend it with:
+- Tree-sitter integration for more precise AST parsing across all languages
+- Better ML dataset with language-specific embeddings
+- Enhanced auto-fix engine using language-specific AST rewriters
+- CI integration for scanning across multi-language repositories
+- Custom rule definitions per language
 
 Contributions & improvements are welcome.
 
 ## Hosting / Deployment
 
-This repo contains a Dockerfile and a `docker-compose.yml` to run the Flask web app behind Gunicorn. The container exposes port 5000.
+This repo contains a Dockerfile and `docker-compose.yml` to run the Flask web app behind Gunicorn. The container exposes port 5000.
 
 Build and run locally with Docker:
 
@@ -100,51 +173,38 @@ docker push ghcr.io/<GH_USER>/code-quality-analyzer:latest
 
 2. Configure Vercel to use the container image:
 - In Vercel dashboard, import your project
-- Choose 'Deploy from Registry' and set the image `ghcr.io/<GH_USER>/code-quality-analyzer:latest`
+- Choose **'Deploy from Registry'** and set the image `ghcr.io/<GH_USER>/code-quality-analyzer:latest`
 - Set `MODEL_URL`, `MODEL_PATH`, `DATABASE_URL` and other secrets as environment variables
-> Note: If you added a `vercel.json` file that included a `builds` entry referencing `@vercel/docker`, remove it to let the dashboard use the "Deploy from Registry" registry option. Vercel will otherwise try to use the unsupported builder and fail.
+- **Do NOT use vercel.json** - the "Deploy from Registry" method in the Vercel dashboard handles container deployment directly
 
-3. Automate publishing images with GitHub Actions (workflow included):
-  - There is a GitHub Actions workflow `.github/workflows/docker-publish-ghcr.yml` in this repo that builds and pushes your Docker image on each `main` push. Ensure GitHub Packages is enabled for your account and that `GITHUB_TOKEN` has the appropriate permissions.
+3. Automate publishing images with GitHub Actions:
+  - The GitHub Actions workflow `.github/workflows/docker-publish-ghcr.yml` automatically builds and pushes your Docker image on each `main` push
+  - Ensure GitHub Packages is enabled and `GITHUB_TOKEN` has appropriate permissions
+  - Workflow includes preflight check to prevent vercel.json from being re-added
 
-4. Optional: Trigger automatic redeploy on Vercel after GHCR publish
-- Add the following secrets to your GitHub repository: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`.
-- The workflow will automatically call the Vercel deploy action to trigger a redeploy after image publish.
+4. Optional: Automatic Vercel redeploy after GHCR publish
+- Add these secrets to your GitHub repository: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`
+- The workflow will automatically trigger Vercel redeploy after image publish
 
-#### CI Secrets and required configuration
-Add the following GitHub repository secrets (as needed):
+#### CI Secrets and Configuration
 
-- `GITHUB_TOKEN` - provided by GitHub Actions (default) for GHCR login
-- `AWS_ACCESS_KEY_ID` - (optional) AWS key for S3 upload
-- `AWS_SECRET_ACCESS_KEY` - (optional) AWS secret for S3 upload
-- `AWS_REGION` - (optional) AWS region for S3
-- `S3_BUCKET` - (optional) S3 bucket name to upload the model artifact (e.g., `my-bucket`)
-- `VERCEL_TOKEN` - (optional) Personal token for Vercel to update env and trigger deploys in workflow
-- `VERCEL_ORG_ID` - (optional) Vercel organization id
-- `VERCEL_PROJECT_ID` - (optional) Vercel project id
+Add the following GitHub repository secrets/variables as needed:
+
+**Secrets:**
+- `GITHUB_TOKEN` - Provided by GitHub Actions (default) for GHCR login
+- `AWS_ACCESS_KEY_ID` - (Optional) AWS key for S3 model upload
+- `AWS_SECRET_ACCESS_KEY` - (Optional) AWS secret for S3 upload
+- `VERCEL_TOKEN` - (Optional) Personal token for Vercel API
+- `VERCEL_ORG_ID` - (Optional) Vercel organization ID
+
+**Variables:**
+- `AWS_REGION` - (Optional) AWS region for S3 (default: us-east-1)
+- `AWS_S3_BUCKET` - (Optional) S3 bucket name for model artifacts
+- `VERCEL_PROJECT_ID` - (Optional) Vercel project ID
 
 Notes:
-- If you don't use S3, the model artifact can be included inside the container or specified with `MODEL_PATH` in the Vercel environment variables.
-- If you use S3 and `MODEL_URL` is created in CI, the workflow will update Vercel project env var `MODEL_URL` (replacing any existing one) and then trigger a Vercel deployment.
-
-
-
-### Vercel (Docker-based deployment)
-
-Vercel supports building and running containers. We provide a `Dockerfile` combined with `vercel.json` to build with `@vercel/docker`.
-
-Steps:
-
-1. Sign in to Vercel and connect the GitHub repo.
-2. Add environment variables under the project settings:
-  - `MODEL_URL` (optional) — URL to download the model at startup (e.g., `https://.../code_quality_model.joblib`). If not supplied, mount the model into the container via the `models/` folder (not possible on Vercel in free tiers), or bake the model into the image.
-  - `MODEL_PATH` — path where the model will be available (default: `/app/models/code_quality_model.joblib`).
-3. Vercel will use the provided `vercel.json` to build the Docker image. The app runs with `gunicorn`, and the `start.sh` script binds to the provided `PORT` environment variable.
-
-Important notes for Vercel:
-
-- Vercel provides ephemeral containers. If you need persistent model storage, host the model on S3/GCS/Azure Blob, and set `MODEL_URL` for the app to download it at startup.
-- Alternatively, store the model inside the image, but this requires rebuilding the image on each model update.
-- Set `MODEL_URL` under Vercel project > Settings > Environment Variables; the app will download the model during startup.
+- If S3 is not configured, the model artifact should be included in the container image
+- The workflow automatically updates Vercel's `MODEL_S3_URL` environment variable if S3 upload succeeds
+- Workflow supports multi-architecture builds (linux/amd64, linux/arm64)
 
 Contributions & improvements are welcome.
