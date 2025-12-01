@@ -61,8 +61,7 @@ jobs:
   upload-model-to-s3:
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: ${{ vars.AWS_S3_BUCKET != '' }}
-    continue-on-error: true
+    if: false  # Disabled - enable when AWS credentials are configured
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -73,26 +72,23 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
-        continue-on-error: true
 
       - name: Upload model to S3
         run: |
           if [ -f "models/code_quality_model.joblib" ]; then
             aws s3 cp models/code_quality_model.joblib \
               s3://${{ vars.AWS_S3_BUCKET }}/models/code_quality_model.joblib \
-              --acl private || echo "S3 upload failed (non-critical)"
+              --acl private
             echo "✓ Model uploaded to S3"
           else
             echo "⚠ No model file found, skipping S3 upload"
           fi
-        continue-on-error: true
 
       - name: Generate presigned URL
         id: presigned-url
         run: |
           PRESIGNED_URL=$(aws s3 presign \
             s3://${{ vars.AWS_S3_BUCKET }}/models/code_quality_model.joblib \
-            --expires-in 31536000 || echo "Failed to generate URL")
+            --expires-in 31536000)
           echo "model-url=$PRESIGNED_URL" >> $GITHUB_OUTPUT
           echo "✓ Generated presigned URL (valid for 1 year)"
-        continue-on-error: true
