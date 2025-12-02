@@ -1127,71 +1127,79 @@ function clearCode() {
 }
 
 // File upload handling
-
-fileInput.addEventListener('change', function(e) {
-  const file = e.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = function(event) {
-      codeTextarea.value = event.target.result;
-      updateCharCounter();
-      showToast('Loaded ' + file.name);
-      
-      // Auto-detect language from file extension
-      const ext = file.name.split('.').pop().toLowerCase();
-      const langMap = {
-        'py': 'python', 'js': 'javascript', 'ts': 'typescript',
-        'java': 'java', 'cpp': 'cpp', 'c': 'c', 'h': 'c', 'hpp': 'cpp',
-        'go': 'go', 'rs': 'rust', 'rb': 'ruby', 'php': 'php',
-        'swift': 'swift', 'kt': 'kotlin', 'scala': 'scala',
-        'pl': 'perl', 'r': 'r', 'm': 'matlab', 'dart': 'dart',
-        'ex': 'elixir', 'hs': 'haskell', 'lua': 'lua',
-        'sh': 'shell', 'ps1': 'powershell', 'sql': 'sql',
-        'html': 'html', 'css': 'css', 'xml': 'xml',
-        'yaml': 'yaml', 'yml': 'yaml', 'json': 'json', 'md': 'markdown'
+if (fileInput && fileUploadZone && codeTextarea) {
+  fileInput.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        codeTextarea.value = event.target.result;
+        updateCharCounter();
+        showToast('Loaded ' + file.name);
+        
+        // Auto-detect language from file extension
+        const ext = file.name.split('.').pop().toLowerCase();
+        const langMap = {
+          'py': 'python', 'js': 'javascript', 'ts': 'typescript',
+          'java': 'java', 'cpp': 'cpp', 'c': 'c', 'h': 'c', 'hpp': 'cpp',
+          'go': 'go', 'rs': 'rust', 'rb': 'ruby', 'php': 'php',
+          'swift': 'swift', 'kt': 'kotlin', 'scala': 'scala',
+          'pl': 'perl', 'r': 'r', 'm': 'matlab', 'dart': 'dart',
+          'ex': 'elixir', 'hs': 'haskell', 'lua': 'lua',
+          'sh': 'shell', 'ps1': 'powershell', 'sql': 'sql',
+          'html': 'html', 'css': 'css', 'xml': 'xml',
+          'yaml': 'yaml', 'yml': 'yaml', 'json': 'json', 'md': 'markdown'
+        };
+        
+        const langSelector = document.getElementById('langSelect');
+        if (langMap[ext] && langSelector) {
+          langSelector.value = langMap[ext];
+        }
       };
-      
-      const langSelector = document.getElementById('langSelect');
-      if (langMap[ext] && langSelector) {
-        langSelector.value = langMap[ext];
-      }
-    };
-    reader.readAsText(file);
-  }
-});
+      reader.readAsText(file);
+    }
+  });
 
-// Drag and drop
-fileUploadZone.addEventListener('dragover', function(e) {
-  e.preventDefault();
-  e.stopPropagation();
-  fileUploadZone.classList.add('drag-over');
-});
+  // Drag and drop
+  fileUploadZone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    fileUploadZone.classList.add('drag-over');
+  });
 
-fileUploadZone.addEventListener('dragleave', function(e) {
-  e.preventDefault();
-  e.stopPropagation();
-  fileUploadZone.classList.remove('drag-over');
-});
+  fileUploadZone.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    fileUploadZone.classList.remove('drag-over');
+  });
 
-fileUploadZone.addEventListener('drop', function(e) {
-  e.preventDefault();
-  e.stopPropagation();
-  fileUploadZone.classList.remove('drag-over');
-  
-  const files = e.dataTransfer.files;
-  if (files.length > 0) {
-    fileInput.files = files;
-    fileInput.dispatchEvent(new Event('change'));
-  }
-});
+  fileUploadZone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    fileUploadZone.classList.remove('drag-over');
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      fileInput.files = files;
+      fileInput.dispatchEvent(new Event('change'));
+    }
+  });
+}
 
 // Character counter
 function updateCharCounter() {
-  const count = codeTextarea.value.length;
-  document.getElementById('charCounter').textContent = count.toLocaleString() + ' characters';
+  if (codeTextarea) {
+    const count = codeTextarea.value.length;
+    const counter = document.getElementById('charCounter');
+    if (counter) {
+      counter.textContent = count.toLocaleString() + ' characters';
+    }
+  }
 }
 
-codeTextarea.addEventListener('input', updateCharCounter);
+if (codeTextarea) {
+  codeTextarea.addEventListener('input', updateCharCounter);
+}
 
 // Code templates by language
 const codeTemplates = {
