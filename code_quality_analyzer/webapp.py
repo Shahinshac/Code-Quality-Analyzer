@@ -1113,6 +1113,10 @@ input[type="text"]:focus {
 </div>
 
 <script>
+// Global references to DOM elements
+const codeTextarea = document.getElementById('codeTextarea');
+const fileInput = document.getElementById('fileInput');
+const fileUploadZone = document.getElementById('fileUploadZone');
 
 function copyFixedCode() {
   const code = document.getElementById('fixedCode').textContent;
@@ -1122,9 +1126,6 @@ function copyFixedCode() {
 }
 
 // File upload handling
-const fileInput = document.getElementById('fileInput');
-const fileUploadZone = document.getElementById('fileUploadZone');
-const codeTextarea = document.getElementById('codeTextarea');
 
 fileInput.addEventListener('change', function(e) {
   const file = e.target.files[0];
@@ -1201,7 +1202,25 @@ const codeTemplates = {
   
   cpp: '#include <iostream>\\n#include <vector>\\n\\nint calculateSum(const std::vector<int>& numbers) {\\n    int total = 0;\\n    for (int num : numbers) {\\n        total += num;\\n    }\\n    return total;\\n}\\n\\nint main() {\\n    std::vector<int> nums = {1, 2, 3, 4, 5};\\n    int result = calculateSum(nums);\\n    std::cout << \\\"Sum: \\\" << result << std::endl;\\n    return 0;\\n}',
   
-  go: 'package main\\n\\nimport \\\"fmt\\\"\\n\\nfunc calculateSum(numbers []int) int {\\n    total := 0\\n    for _, num := range numbers {\\n        total += num\\n    }\\n    return total\\n}\\n\\nfunc main() {\\n    nums := []int{1, 2, 3, 4, 5}\\n    result := calculateSum(nums)\\n    fmt.Printf(\\\"Sum: %d\\\\n\\\", result)\\n}'
+  go: 'package main\\n\\nimport \\\"fmt\\\"\\n\\nfunc calculateSum(numbers []int) int {\\n    total := 0\\n    for _, num := range numbers {\\n        total += num\\n    }\\n    return total\\n}\\n\\nfunc main() {\\n    nums := []int{1, 2, 3, 4, 5}\\n    result := calculateSum(nums)\\n    fmt.Printf(\\\"Sum: %d\\\\n\\\", result)\\n}',
+  
+  typescript: 'function calculateSum(numbers: number[]): number {\\n  let total: number = 0;\\n  for (const num of numbers) {\\n    total += num;\\n  }\\n  return total;\\n}\\n\\n// Example usage\\nconst result: number = calculateSum([1, 2, 3, 4, 5]);\\nconsole.log(`Sum: ${result}`);',
+  
+  ruby: 'def calculate_sum(numbers)\\n  total = 0\\n  numbers.each do |num|\\n    total += num\\n  end\\n  total\\nend\\n\\n# Example usage\\nresult = calculate_sum([1, 2, 3, 4, 5])\\nputs \\\"Sum: #{result}\\\"',
+  
+  php: '<?php\\nfunction calculateSum($numbers) {\\n    $total = 0;\\n    foreach ($numbers as $num) {\\n        $total += $num;\\n    }\\n    return $total;\\n}\\n\\n// Example usage\\n$result = calculateSum([1, 2, 3, 4, 5]);\\necho \\\"Sum: \\\" . $result . \\\"\\\\n\\\";\\n?>',
+  
+  rust: 'fn calculate_sum(numbers: &[i32]) -> i32 {\\n    let mut total = 0;\\n    for num in numbers {\\n        total += num;\\n    }\\n    total\\n}\\n\\nfn main() {\\n    let nums = vec![1, 2, 3, 4, 5];\\n    let result = calculate_sum(&nums);\\n    println!(\\\"Sum: {}\\\", result);\\n}',
+  
+  swift: 'func calculateSum(numbers: [Int]) -> Int {\\n    var total = 0\\n    for num in numbers {\\n        total += num\\n    }\\n    return total\\n}\\n\\n// Example usage\\nlet result = calculateSum(numbers: [1, 2, 3, 4, 5])\\nprint(\\\"Sum: \\\\(result)\\\")',
+  
+  csharp: 'using System;\\nusing System.Linq;\\n\\nclass Calculator {\\n    static int CalculateSum(int[] numbers) {\\n        int total = 0;\\n        foreach (int num in numbers) {\\n            total += num;\\n        }\\n        return total;\\n    }\\n    \\n    static void Main() {\\n        int[] nums = {1, 2, 3, 4, 5};\\n        int result = CalculateSum(nums);\\n        Console.WriteLine($\\\"Sum: {result}\\\");\\n    }\\n}',
+  
+  kotlin: 'fun calculateSum(numbers: List<Int>): Int {\\n    var total = 0\\n    for (num in numbers) {\\n        total += num\\n    }\\n    return total\\n}\\n\\nfun main() {\\n    val nums = listOf(1, 2, 3, 4, 5)\\n    val result = calculateSum(nums)\\n    println(\\\"Sum: $result\\\")\\n}',
+  
+  scala: 'object Calculator {\\n  def calculateSum(numbers: List[Int]): Int = {\\n    var total = 0\\n    for (num <- numbers) {\\n      total += num\\n    }\\n    total\\n  }\\n  \\n  def main(args: Array[String]): Unit = {\\n    val nums = List(1, 2, 3, 4, 5)\\n    val result = calculateSum(nums)\\n    println(s\\\"Sum: $result\\\")\\n  }\\n}',
+  
+  r: 'calculate_sum <- function(numbers) {\\n  total <- 0\\n  for (num in numbers) {\\n    total <- total + num\\n  }\\n  return(total)\\n}\\n\\n# Example usage\\nresult <- calculate_sum(c(1, 2, 3, 4, 5))\\nprint(paste(\\\"Sum:\\\", result))'
 };
 
 function loadTemplate() {
@@ -1463,28 +1482,27 @@ def create_app():
                     if model_path:
                         ml_result = {'error': f'Model file not found: {model_path}'}
                 
-                # NEW: Complexity Analysis (Python only for now)
+                # NEW: Complexity Analysis (All languages)
                 complexity_data = None
-                if lang == 'python':
-                    try:
-                        complexity_analyzer = ComplexityAnalyzer()
-                        complexity_data = complexity_analyzer.analyze(code)
-                    except Exception as e:
-                        app.logger.error(f'Complexity analysis error: {e}')
+                try:
+                    complexity_analyzer = ComplexityAnalyzer()
+                    complexity_data = complexity_analyzer.analyze(code)
+                except Exception as e:
+                    app.logger.error(f'Complexity analysis error: {e}')
                 
-                # NEW: Security Scan (Python only)
+                # NEW: Security Scan (All languages)
                 security_data = None
-                if lang == 'python' and enable_security:
+                if enable_security:
                     try:
                         security_scanner = SecurityScanner()
                         security_data = security_scanner.scan(code)
                     except Exception as e:
                         app.logger.error(f'Security scan error: {e}')
                 
-                # NEW: Auto-fix suggestions (Python only)
+                # NEW: Auto-fix suggestions (All languages)
                 fixed_code = None
                 auto_fix_report = None
-                if lang == 'python' and enable_autofix:
+                if enable_autofix:
                     try:
                         auto_fixer = CodeAutoFixer()
                         fixed_code, fixes = auto_fixer.fix_all(code)
