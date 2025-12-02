@@ -851,7 +851,7 @@ input[type="text"]:focus {
       </div>
       
       <div class="advanced-options" style="margin: 20px 0; padding: 15px; background: var(--input-bg); border-radius: 10px; border: 1px solid var(--border-color);">
-        <h4 style="margin-bottom: 10px; font-size: 1em;"><i class="fas fa-sliders-h"></i> Advanced Analysis (Python only)</h4>
+        <h4 style="margin-bottom: 10px; font-size: 1em;"><i class="fas fa-sliders-h"></i> Advanced Analysis <span style="color: var(--success-color); font-size: 0.85em;">(All Languages)</span></h4>
         <div style="display: flex; gap: 20px; flex-wrap: wrap;">
           <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
             <input type="checkbox" name="autofix" value="true" id="autofixCheck" style="width: 18px; height: 18px; cursor: pointer;">
@@ -863,7 +863,7 @@ input[type="text"]:focus {
           </label>
         </div>
         <p style="margin-top: 8px; font-size: 0.85em; opacity: 0.7;">
-          <i class="fas fa-info-circle"></i> Enable advanced features for deeper analysis and automated fixes
+          <i class="fas fa-rocket"></i> Enterprise-grade analysis: Complexity metrics, security vulnerabilities, and automated fixes for 40+ languages
         </p>
       </div>
       
