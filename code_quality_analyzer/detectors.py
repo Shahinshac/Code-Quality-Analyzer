@@ -93,6 +93,74 @@ class RuleBasedDetector:
             if var not in used:
                 smells.append(CodeSmell('unused_variable', f'Variable {var} is assigned but never used'))
         return smells
+    
+    def detect_poor_naming(self, source: str) -> List[CodeSmell]:
+        """Detect poor variable and function names"""
+        tree = ast.parse(source)
+        smells = []
+        single_letter_vars = set()
+        
+        # Common 2-letter abbreviations that are acceptable
+        acceptable_2char = {'df', 'db', 'fs', 'os', 'np', 'pd', 'ax', 'id'}
+        
+        for node in ast.walk(tree):
+            # Check function names - be very strict
+            if isinstance(node, ast.FunctionDef):
+                if len(node.name) == 1 and node.name not in ['_']:
+                    smells.append(CodeSmell(
+                        'poor_naming',
+                        f'Function name "{node.name}" is too short - use descriptive names',
+                        node.lineno
+                    ))
+                elif len(node.name) == 2 and node.name not in acceptable_2char:
+                    smells.append(CodeSmell(
+                        'poor_naming',
+                        f'Function name "{node.name}" is very short - use descriptive names',
+                        node.lineno
+                    ))
+                
+                # Check function parameters too!
+                for arg in node.args.args:
+                    param_name = arg.arg
+                    if len(param_name) == 1 and param_name != '_':
+                        smells.append(CodeSmell(
+                            'poor_naming',
+                            f'Parameter "{param_name}" in function "{node.name}" is single-letter',
+                            node.lineno
+                        ))
+                    elif len(param_name) == 2 and param_name not in acceptable_2char:
+                        smells.append(CodeSmell(
+                            'poor_naming',
+                            f'Parameter "{param_name}" in function "{node.name}" is very short',
+                            node.lineno
+                        ))
+            
+            # Check variable names - be strict on all single letters
+            elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+                targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                for target in targets:
+                    if isinstance(target, ast.Name):
+                        name = target.id
+                        # Flag ALL single letter variables (no exceptions for i,j,k)
+                        if len(name) == 1 and name != '_':
+                            if name not in single_letter_vars:
+                                single_letter_vars.add(name)
+                                smells.append(CodeSmell(
+                                    'poor_naming',
+                                    f'Variable "{name}" is single-letter - use descriptive names',
+                                    target.lineno if hasattr(target, 'lineno') else None
+                                ))
+                        # Also flag very short 2-char names
+                        elif len(name) == 2 and name not in acceptable_2char:
+                            if name not in single_letter_vars:
+                                single_letter_vars.add(name)
+                                smells.append(CodeSmell(
+                                    'poor_naming',
+                                    f'Variable "{name}" is very short - use descriptive names',
+                                    target.lineno if hasattr(target, 'lineno') else None
+                                ))
+        
+        return smells
 
     def detect_all(self, source: str) -> List[CodeSmell]:
         smells = []
@@ -100,6 +168,7 @@ class RuleBasedDetector:
         smells.extend(self.detect_deep_nesting(source))
         smells.extend(self.detect_unused_imports(source))
         smells.extend(self.detect_unused_variables(source))
+        smells.extend(self.detect_poor_naming(source))
         # flake8 rule-based lints
         try:
             smells.extend(self.detect_with_flake8(source))

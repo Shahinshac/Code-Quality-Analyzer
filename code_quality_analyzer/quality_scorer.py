@@ -11,11 +11,11 @@ class QualityScorer:
     def __init__(self):
         # Weight distribution (must sum to 100)
         self.weights = {
-            'style': 25,           # PEP8 compliance
-            'maintainability': 25,  # Maintainability index
-            'complexity': 20,       # Cyclomatic/cognitive complexity
-            'security': 20,         # Security vulnerabilities
-            'documentation': 10     # Docstrings and comments
+            'style': 18,           # PEP8 compliance
+            'maintainability': 18,  # Maintainability index  
+            'complexity': 26,       # Cyclomatic/cognitive complexity
+            'security': 35,         # Security vulnerabilities (increased from 30)
+            'documentation': 3      # Docstrings and comments
         }
     
     def calculate_score(
@@ -85,13 +85,29 @@ class QualityScorer:
             return 100.0
         
         style_issues = [s for s in smells if hasattr(s, 'kind') and 
-                       s.kind in ['long_line', 'trailing_whitespace', 'naming']]
+                       s.kind in ['long_line', 'trailing_whitespace', 'naming', 'poor_naming']]
         
-        penalty = len(style_issues) * 3
+        # Extremely aggressive penalties
+        penalty = len(style_issues) * 12  # Increased from 8
+        
+        # Extra penalty for poor naming (very important)
+        poor_naming = [s for s in style_issues if s.kind == 'poor_naming']
+        penalty += len(poor_naming) * 20  # Increased from 15
+        
         if auto_fix_report:
             pep8_fixes = len([f for f in auto_fix_report.get('fixes', []) 
                             if f.get('type') == 'pep8'])
-            penalty += pep8_fixes * 2
+            penalty += pep8_fixes * 3
+            
+            # Heavy penalty for naming issues (single-letter variables)
+            naming_fixes = [f for f in auto_fix_report.get('fixes', []) 
+                           if f.get('type') == 'naming']
+            penalty += len(naming_fixes) * 20  # Increased from 15
+        
+        # Penalize missing docstrings
+        docstring_issues = [f for f in auto_fix_report.get('fixes', []) 
+                           if f.get('type') == 'docstring'] if auto_fix_report else []
+        penalty += len(docstring_issues) * 12  # Increased from 8
         
         return max(0, 100 - penalty)
     
@@ -101,7 +117,18 @@ class QualityScorer:
             return 75.0  # Default score
         
         mi_data = complexity_analysis.get('maintainability', {})
-        return mi_data.get('score', 75.0)
+        mi_score = mi_data.get('score', 75.0)
+        
+        # Apply penalty based on ranking
+        rank = mi_data.get('rank', 'B')
+        if rank == 'F':
+            return max(0, mi_score - 30)
+        elif rank == 'D':
+            return max(0, mi_score - 20)
+        elif rank == 'C':
+            return max(0, mi_score - 10)
+        
+        return mi_score
     
     def _calculate_complexity_score(self, complexity_analysis: Dict) -> float:
         """Calculate complexity score"""
@@ -110,21 +137,36 @@ class QualityScorer:
         
         score = 100.0
         
-        # Cyclomatic complexity penalty
+        # Extremely aggressive cyclomatic complexity penalties
         cyclomatic = complexity_analysis.get('cyclomatic', [])
         for item in cyclomatic:
-            if item['complexity'] > 10:
-                score -= 5
-            elif item['complexity'] > 5:
-                score -= 2
+            complexity = item['complexity']
+            if complexity > 20:
+                score -= 40  # Very complex (increased from 30)
+            elif complexity > 10:
+                score -= 30  # Increased from 20
+            elif complexity > 5:
+                score -= 15  # Increased from 10
+            elif complexity > 3:
+                score -= 8   # Increased from 5
+            elif complexity > 2:
+                score -= 5   # Increased from 3
+            elif complexity > 1:
+                score -= 2   # Even complexity of 2 gets penalized
         
-        # Cognitive complexity penalty
+        # Extremely aggressive cognitive complexity penalty
         cognitive = complexity_analysis.get('cognitive', {})
         max_nesting = cognitive.get('max_nesting', 0)
-        if max_nesting > 5:
-            score -= 10
+        if max_nesting > 6:
+            score -= 40  # Deeply nested (increased from 30)
+        elif max_nesting > 5:
+            score -= 30  # Increased from 20
         elif max_nesting > 3:
-            score -= 5
+            score -= 20  # Increased from 12
+        elif max_nesting > 2:
+            score -= 10  # Increased from 6
+        elif max_nesting > 1:
+            score -= 5   # Even nesting of 2 gets penalized
         
         return max(0, score)
     
@@ -139,16 +181,21 @@ class QualityScorer:
         """Calculate documentation score"""
         score = 100.0
         
-        # Check for missing docstrings
+        # More aggressive penalties for missing docstrings
         if auto_fix_report:
             docstring_issues = len([f for f in auto_fix_report.get('fixes', []) 
                                    if f.get('type') == 'docstring'])
-            score -= docstring_issues * 5
+            score -= docstring_issues * 15  # Increased from 5 - docstrings are critical
         
-        # Check for excessive comments
+        # Check for excessive comments (code smell)
         comment_issues = [s for s in smells if hasattr(s, 'kind') and 
                          s.kind == 'excessive_comments']
-        score -= len(comment_issues) * 3
+        score -= len(comment_issues) * 8  # Increased from 3
+        
+        # Check for TODO comments (indicates incomplete work)
+        todo_issues = [s for s in smells if hasattr(s, 'kind') and 
+                      s.kind == 'todo_comment']
+        score -= len(todo_issues) * 5  # New: penalize TODOs
         
         return max(0, score)
     

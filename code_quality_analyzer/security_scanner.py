@@ -24,20 +24,23 @@ class SecurityScanner:
                 temp_path = f.name
             
             try:
-                # Run bandit
+                # Run bandit with aggressive settings
                 result = subprocess.run(
-                    ['bandit', '-f', 'json', temp_path],
+                    ['bandit', '-f', 'json', '-ll', '-c', 'bandit.yaml', temp_path],
                     capture_output=True,
                     text=True,
-                    timeout=10
+                    timeout=10,
+                    errors='ignore'
                 )
                 
                 # Parse JSON output
+                vulnerabilities = []
                 if result.stdout:
-                    bandit_data = json.loads(result.stdout)
-                    vulnerabilities = self._parse_bandit_output(bandit_data)
-                else:
-                    vulnerabilities = []
+                    try:
+                        bandit_data = json.loads(result.stdout)
+                        vulnerabilities = self._parse_bandit_output(bandit_data)
+                    except:
+                        pass
                 
                 # Add custom security checks
                 custom_checks = self._custom_security_checks(code)
@@ -53,12 +56,22 @@ class SecurityScanner:
                     os.unlink(temp_path)
         
         except Exception as e:
-            return {
-                'vulnerabilities': [],
-                'summary': {'total': 0, 'high': 0, 'medium': 0, 'low': 0},
-                'score': 100,
-                'error': str(e)
-            }
+            # Still run custom checks even if Bandit fails
+            try:
+                custom_checks = self._custom_security_checks(code)
+                return {
+                    'vulnerabilities': custom_checks,
+                    'summary': self._generate_summary(custom_checks),
+                    'score': self._calculate_security_score(custom_checks),
+                    'error': f'Bandit scan failed, using custom checks only: {str(e)}'
+                }
+            except:
+                return {
+                    'vulnerabilities': [],
+                    'summary': {'total': 0, 'high': 0, 'medium': 0, 'low': 0},
+                    'score': 100,
+                    'error': str(e)
+                }
     
     def _parse_bandit_output(self, bandit_data: Dict) -> List[Dict]:
         """Parse Bandit JSON output"""
@@ -81,29 +94,31 @@ class SecurityScanner:
     
     def _custom_security_checks(self, code: str) -> List[Dict]:
         """Custom security pattern matching"""
+        import re
         vulnerabilities = []
         lines = code.split('\n')
         
-        # Check for hardcoded passwords/secrets
+        # Check for hardcoded passwords/secrets (more patterns)
         password_patterns = [
-            r'password\s*=\s*["\'][^"\']+["\']',
-            r'api_key\s*=\s*["\'][^"\']+["\']',
-            r'secret\s*=\s*["\'][^"\']+["\']',
-            r'token\s*=\s*["\'][^"\']+["\']',
+            (r'password\s*=\s*["\'][^"\']+["\']', 'Hardcoded Password'),
+            (r'api[_-]?key\s*=\s*["\'][^"\']+["\']', 'Hardcoded API Key'),
+            (r'secret[_-]?key\s*=\s*["\'][^"\']+["\']', 'Hardcoded Secret'),
+            (r'token\s*=\s*["\'][^"\']+["\']', 'Hardcoded Token'),
+            (r'auth[_-]?token\s*=\s*["\'][^"\']+["\']', 'Hardcoded Auth Token'),
+            (r'access[_-]?key\s*=\s*["\'][^"\']+["\']', 'Hardcoded Access Key'),
         ]
         
         for i, line in enumerate(lines, 1):
-            import re
-            for pattern in password_patterns:
+            for pattern, name in password_patterns:
                 if re.search(pattern, line, re.IGNORECASE):
                     vulnerabilities.append({
                         'type': 'custom',
                         'test_id': 'HARDCODED_SECRET',
-                        'test_name': 'Hardcoded Secret',
+                        'test_name': name,
                         'severity': 'HIGH',
                         'confidence': 'HIGH',
                         'line': i,
-                        'message': 'Possible hardcoded password or secret found',
+                        'message': f'{name} detected - never hardcode credentials',
                         'code': line.strip()
                     })
         
@@ -189,17 +204,24 @@ class SecurityScanner:
         if not vulnerabilities:
             return 100.0
         
-        # Penalty points based on severity
+        # Extremely aggressive penalty points based on severity
         penalties = {
-            'HIGH': 15,
-            'MEDIUM': 8,
-            'LOW': 3
+            'HIGH': 30,    # Increased from 25
+            'MEDIUM': 18,  # Increased from 15
+            'LOW': 10      # Increased from 8
         }
         
-        total_penalty = 0
+        # Extra penalty for eval/exec usage (extremely dangerous)
+        eval_exec_penalty = 0
+        for vuln in vulnerabilities:
+            test_name = vuln.get('test_name', '').lower()
+            if 'eval' in test_name or 'exec' in test_name:
+                eval_exec_penalty += 15  # Big extra penalty
+        
+        total_penalty = eval_exec_penalty
         for vuln in vulnerabilities:
             severity = vuln.get('severity', 'MEDIUM').upper()
-            total_penalty += penalties.get(severity, 5)
+            total_penalty += penalties.get(severity, 10)
         
         score = max(0, 100 - total_penalty)
         return round(score, 2)
