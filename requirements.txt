@@ -2,6 +2,7 @@
 flask==3.0.0
 gunicorn==21.2.0
 requests==2.31.0
+python-dotenv==1.2.1
 
 # Machine Learning (with version constraints for Windows compatibility)
 scikit-learn==1.3.2
@@ -13,6 +14,16 @@ flake8==7.0.0
 pylint==3.0.3
 autopep8==2.0.4
 astunparse==1.6.3
+radon==6.0.1
+
+# Security scanning
+bandit==1.7.5
+
+# Code complexity and maintainability
+mccabe==0.7.0
+
+# Dependency analysis
+safety==3.0.1
 
 # Testing
 pytest==7.4.3

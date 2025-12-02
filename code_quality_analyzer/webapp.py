@@ -1,8 +1,16 @@
 from flask import Flask, request, render_template_string, jsonify
 import os
+from dotenv import load_dotenv
 from .detectors import RuleBasedDetector
 from .suggestion_engine import suggestions_for_smells
 from .ml_classifier import predict_code_quality, compute_quality_score
+from .auto_fixer import CodeAutoFixer
+from .complexity_analyzer import ComplexityAnalyzer
+from .security_scanner import SecurityScanner
+from .quality_scorer import QualityScorer
+
+# Load environment variables from .env file
+load_dotenv()
 
 TEMPLATE = """
 <!doctype html>
@@ -842,7 +850,24 @@ input[type="text"]:focus {
         <div class="char-counter" id="charCounter">0 characters</div>
       </div>
       
-      <button type="submit" class="btn-analyze"><i class="fas fa-rocket"></i> Analyze</button>
+      <div class="advanced-options" style="margin: 20px 0; padding: 15px; background: var(--input-bg); border-radius: 10px; border: 1px solid var(--border-color);">
+        <h4 style="margin-bottom: 10px; font-size: 1em;"><i class="fas fa-sliders-h"></i> Advanced Analysis (Python only)</h4>
+        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" name="autofix" value="true" id="autofixCheck" style="width: 18px; height: 18px; cursor: pointer;">
+            <span><i class="fas fa-magic"></i> Auto-Fix Code</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" name="security" value="true" id="securityCheck" style="width: 18px; height: 18px; cursor: pointer;">
+            <span><i class="fas fa-shield-alt"></i> Security Scan</span>
+          </label>
+        </div>
+        <p style="margin-top: 8px; font-size: 0.85em; opacity: 0.7;">
+          <i class="fas fa-info-circle"></i> Enable advanced features for deeper analysis and automated fixes
+        </p>
+      </div>
+      
+      <button type="submit" class="btn-analyze"><i class="fas fa-rocket"></i> Analyze Code</button>
     </form>
     
     <div class="loading" id="loading">
@@ -867,12 +892,40 @@ input[type="text"]:focus {
       <div class="score-card">
         <h2><i class="fas fa-chart-line"></i> Quality Score</h2>
         <div class="score-number">{{ analysis.quality_score }}<span style="font-size: 0.5em;">/100</span></div>
-        {% if analysis.quality_score >= 80 %}
+        {% if analysis.quality_details %}
+        <span class="badge badge-{{ analysis.quality_details.grade|lower }}">Grade: {{ analysis.quality_details.grade }}</span>
+        {% elif analysis.quality_score >= 80 %}
         <span class="badge badge-good">Excellent</span>
         {% elif analysis.quality_score >= 60 %}
         <span class="badge badge-warning">Good</span>
         {% else %}
         <span class="badge badge-bad">Needs Improvement</span>
+        {% endif %}
+        
+        {% if analysis.quality_details and analysis.quality_details.components %}
+        <div style="margin-top: 20px; text-align: left;">
+          <h4 style="font-size: 1em; margin-bottom: 10px;">Score Breakdown:</h4>
+          {% for name, comp in analysis.quality_details.components.items() %}
+          <div style="margin: 8px 0; padding: 8px; background: rgba(0,0,0,0.1); border-radius: 5px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="text-transform: capitalize;">{{ name }}</span>
+              <span style="font-weight: bold;">{{ comp.score }}/100</span>
+            </div>
+            <div style="width: 100%; height: 6px; background: rgba(0,0,0,0.2); border-radius: 3px; margin-top: 5px; overflow: hidden;">
+              <div style="width: {{ comp.score }}%; height: 100%; background: {% if comp.score >= 80 %}#51cf66{% elif comp.score >= 60 %}#ffa500{% else %}#ff6b6b{% endif %}; transition: width 0.5s;"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        
+        {% if analysis.quality_details and analysis.quality_details.recommendations %}
+        <div style="margin-top: 15px; text-align: left;">
+          <h4 style="font-size: 0.9em; margin-bottom: 8px;">Recommendations:</h4>
+          {% for rec in analysis.quality_details.recommendations %}
+          <div style="margin: 5px 0; font-size: 0.85em; opacity: 0.9;">{{ rec }}</div>
+          {% endfor %}
+        </div>
         {% endif %}
       </div>
       
@@ -918,6 +971,137 @@ input[type="text"]:focus {
         {% endif %}
       </div>
       {% endif %}
+      
+      {% if analysis.complexity %}
+      <div class="section">
+        <h3><i class="fas fa-project-diagram"></i> Complexity Analysis</h3>
+        
+        {% if analysis.complexity.maintainability %}
+        <div style="margin: 15px 0; padding: 15px; background: rgba(102,126,234,0.1); border-left: 4px solid #667eea; border-radius: 5px;">
+          <h4 style="margin-bottom: 10px; font-size: 1em;">Maintainability Index</h4>
+          <div style="font-size: 2em; font-weight: bold; color: #667eea;">{{ analysis.complexity.maintainability.score }}</div>
+          <div>Rank: {{ analysis.complexity.maintainability.rank }} - {{ analysis.complexity.maintainability.classification }}</div>
+        </div>
+        {% endif %}
+        
+        {% if analysis.complexity.cyclomatic %}
+        <h4 style="margin-top: 20px; margin-bottom: 10px; font-size: 1em;">Cyclomatic Complexity</h4>
+        {% for item in analysis.complexity.cyclomatic %}
+        <div style="margin: 8px 0; padding: 10px; background: var(--input-bg); border-radius: 5px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span><strong>{{ item.name }}</strong> (Line {{ item.line }})</span>
+            <span class="badge badge-{% if item.complexity <= 5 %}good{% elif item.complexity <= 10 %}warning{% else %}bad{% endif %}">
+              Complexity: {{ item.complexity }}
+            </span>
+          </div>
+          <div style="font-size: 0.85em; margin-top: 5px; opacity: 0.8;">{{ item.classification }} (Rank: {{ item.rank }})</div>
+        </div>
+        {% endfor %}
+        {% endif %}
+        
+        {% if analysis.complexity.raw_metrics %}
+        <h4 style="margin-top: 20px; margin-bottom: 10px; font-size: 1em;">Code Metrics</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+          <div style="padding: 10px; background: var(--input-bg); border-radius: 5px; text-align: center;">
+            <div style="font-size: 1.5em; font-weight: bold;">{{ analysis.complexity.raw_metrics.loc }}</div>
+            <div style="font-size: 0.85em; opacity: 0.7;">Lines of Code</div>
+          </div>
+          <div style="padding: 10px; background: var(--input-bg); border-radius: 5px; text-align: center;">
+            <div style="font-size: 1.5em; font-weight: bold;">{{ analysis.complexity.raw_metrics.lloc }}</div>
+            <div style="font-size: 0.85em; opacity: 0.7;">Logical LOC</div>
+          </div>
+          <div style="padding: 10px; background: var(--input-bg); border-radius: 5px; text-align: center;">
+            <div style="font-size: 1.5em; font-weight: bold;">{{ analysis.complexity.raw_metrics.comments }}</div>
+            <div style="font-size: 0.85em; opacity: 0.7;">Comments</div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+      
+      {% if analysis.security %}
+      <div class="section">
+        <h3><i class="fas fa-shield-alt"></i> Security Analysis</h3>
+        
+        <div style="margin: 15px 0; padding: 15px; background: {% if analysis.security.score >= 80 %}rgba(81,207,102,0.1){% elif analysis.security.score >= 60 %}rgba(255,165,0,0.1){% else %}rgba(255,107,107,0.1){% endif %}; border-left: 4px solid {% if analysis.security.score >= 80 %}#51cf66{% elif analysis.security.score >= 60 %}#ffa500{% else %}#ff6b6b{% endif %}; border-radius: 5px;">
+          <div style="font-size: 2em; font-weight: bold;">Security Score: {{ analysis.security.score }}/100</div>
+          <div style="margin-top: 10px;">
+            {% if analysis.security.summary %}
+            <div>Total Issues: {{ analysis.security.summary.total }}</div>
+            {% if analysis.security.summary.high > 0 %}
+            <div style="color: #ff6b6b;"><i class="fas fa-exclamation-triangle"></i> High: {{ analysis.security.summary.high }}</div>
+            {% endif %}
+            {% if analysis.security.summary.medium > 0 %}
+            <div style="color: #ffa500;"><i class="fas fa-exclamation-circle"></i> Medium: {{ analysis.security.summary.medium }}</div>
+            {% endif %}
+            {% if analysis.security.summary.low > 0 %}
+            <div style="color: #51cf66;"><i class="fas fa-info-circle"></i> Low: {{ analysis.security.summary.low }}</div>
+            {% endif %}
+            {% endif %}
+          </div>
+        </div>
+        
+        {% if analysis.security.vulnerabilities %}
+        <h4 style="margin-top: 20px; margin-bottom: 10px; font-size: 1em;">Vulnerabilities Found:</h4>
+        {% for vuln in analysis.security.vulnerabilities %}
+        <div style="margin: 10px 0; padding: 12px; background: var(--input-bg); border-left: 4px solid {% if vuln.severity == 'HIGH' %}#ff6b6b{% elif vuln.severity == 'MEDIUM' %}#ffa500{% else %}#51cf66{% endif %}; border-radius: 5px;">
+          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+            <strong>{{ vuln.test_name }}</strong>
+            <span class="badge badge-{% if vuln.severity == 'HIGH' %}bad{% elif vuln.severity == 'MEDIUM' %}warning{% else %}good{% endif %}">
+              {{ vuln.severity }}
+            </span>
+          </div>
+          <div style="margin: 5px 0; font-size: 0.9em;">{{ vuln.message }}</div>
+          {% if vuln.line %}
+          <div style="font-size: 0.85em; opacity: 0.7;">Line {{ vuln.line }}</div>
+          {% endif %}
+          {% if vuln.code %}
+          <div style="margin-top: 8px; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 3px; font-family: monospace; font-size: 0.85em; overflow-x: auto;">{{ vuln.code }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="no-issues">✨ No security vulnerabilities detected! ✨</div>
+        {% endif %}
+      </div>
+      {% endif %}
+      
+      {% if analysis.auto_fix %}
+      <div class="section">
+        <h3><i class="fas fa-magic"></i> Auto-Fix Report</h3>
+        
+        {% if analysis.auto_fix.fixes %}
+        <div style="margin: 15px 0; padding: 15px; background: rgba(81,207,102,0.1); border-left: 4px solid #51cf66; border-radius: 5px;">
+          <strong>{{ analysis.auto_fix.fixes|length }} fixes applied automatically!</strong>
+        </div>
+        
+        <h4 style="margin-top: 20px; margin-bottom: 10px; font-size: 1em;">Applied Fixes:</h4>
+        {% for fix in analysis.auto_fix.fixes %}
+        <div style="margin: 8px 0; padding: 10px; background: var(--input-bg); border-radius: 5px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span><i class="fas fa-check-circle" style="color: #51cf66;"></i> {{ fix.type|upper }}</span>
+            {% if fix.line %}<span style="opacity: 0.7;">Line {{ fix.line }}</span>{% endif %}
+          </div>
+          <div style="margin-top: 5px; font-size: 0.9em;">{{ fix.message }}</div>
+        </div>
+        {% endfor %}
+        
+        {% if analysis.auto_fix.fixed_code %}
+        <div style="margin-top: 20px;">
+          <h4 style="margin-bottom: 10px; font-size: 1em;">
+            <i class="fas fa-code"></i> Fixed Code:
+            <button type="button" onclick="copyFixedCode()" style="margin-left: 10px; padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.85em;">
+              <i class="fas fa-copy"></i> Copy
+            </button>
+          </h4>
+          <pre id="fixedCode" style="background: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 8px; overflow-x: auto; max-height: 400px;"><code>{{ analysis.auto_fix.fixed_code }}</code></pre>
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="no-issues">No automatic fixes available.</div>
+        {% endif %}
+      </div>
+      {% endif %}
     </div>
     {% endif %}
   </div>
@@ -929,6 +1113,13 @@ input[type="text"]:focus {
 </div>
 
 <script>
+
+function copyFixedCode() {
+  const code = document.getElementById('fixedCode').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    showToast('Fixed code copied to clipboard!');
+  });
+}
 
 // File upload handling
 const fileInput = document.getElementById('fileInput');
@@ -1239,6 +1430,8 @@ def create_app():
                     return render_template_string(TEMPLATE, analysis=None, error=error)
                 
                 lang = request.form.get('lang', 'python')
+                enable_autofix = request.form.get('autofix') == 'true'
+                enable_security = request.form.get('security') == 'true'
                 
                 # Try to find model in common locations
                 model_path = os.environ.get('MODEL_PATH')
@@ -1253,11 +1446,12 @@ def create_app():
                             model_path = path
                             break
                 
+                # Basic detection
                 detector = RuleBasedDetector()
-                # Use language-specific detection
                 smells = detector.detect_all_languages(code, lang)
-                
                 suggestions = suggestions_for_smells(smells)
+                
+                # ML Classification
                 ml_result = None
                 if model_path and os.path.exists(model_path):
                     try:
@@ -1266,21 +1460,56 @@ def create_app():
                     except Exception as e:
                         ml_result = {'error': f'ML prediction failed: {str(e)}'}
                 else:
-                    # ML is optional - don't show error if no model path provided
                     if model_path:
                         ml_result = {'error': f'Model file not found: {model_path}'}
-                    # If no model path at all, ml_result stays None (hidden in template)
                 
-                # compute quality score even if ML not used
-                score = compute_quality_score(None, None, smells)
-                if ml_result and isinstance(ml_result, dict) and 'label' in ml_result:
-                    score = compute_quality_score(ml_result['label'], ml_result['confidence'], smells)
+                # NEW: Complexity Analysis (Python only for now)
+                complexity_data = None
+                if lang == 'python':
+                    try:
+                        complexity_analyzer = ComplexityAnalyzer()
+                        complexity_data = complexity_analyzer.analyze(code)
+                    except Exception as e:
+                        app.logger.error(f'Complexity analysis error: {e}')
+                
+                # NEW: Security Scan (Python only)
+                security_data = None
+                if lang == 'python' and enable_security:
+                    try:
+                        security_scanner = SecurityScanner()
+                        security_data = security_scanner.scan(code)
+                    except Exception as e:
+                        app.logger.error(f'Security scan error: {e}')
+                
+                # NEW: Auto-fix suggestions (Python only)
+                fixed_code = None
+                auto_fix_report = None
+                if lang == 'python' and enable_autofix:
+                    try:
+                        auto_fixer = CodeAutoFixer()
+                        fixed_code, fixes = auto_fixer.fix_all(code)
+                        auto_fix_report = {'fixed_code': fixed_code, 'fixes': fixes}
+                    except Exception as e:
+                        app.logger.error(f'Auto-fix error: {e}')
+                
+                # NEW: Enhanced Quality Score
+                quality_scorer = QualityScorer()
+                quality_score_data = quality_scorer.calculate_score(
+                    smells,
+                    complexity_data,
+                    security_data,
+                    auto_fix_report
+                )
                 
                 analysis = {
                     'smells': [s.to_dict() for s in smells],
                     'suggestions': suggestions,
                     'ml_classification': ml_result,
-                    'quality_score': score,
+                    'quality_score': quality_score_data.get('total_score', 75),
+                    'quality_details': quality_score_data,
+                    'complexity': complexity_data,
+                    'security': security_data,
+                    'auto_fix': auto_fix_report,
                 }
             except Exception as e:
                 error = f'Error analyzing code: {str(e)}'
