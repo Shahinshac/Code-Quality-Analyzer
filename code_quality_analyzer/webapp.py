@@ -760,15 +760,9 @@ input[type="text"]:focus {
 </head>
 <body>
 <div class="container">
-  <div class="header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
-    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark Mode" style="background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.3); color: white; padding: 10px 15px; border-radius: 50px; cursor: pointer; transition: all 0.3s ease; font-size: 1.2em; backdrop-filter: blur(10px);">
-      <i class="fas fa-moon" id="themeIcon"></i>
-    </button>
-    <div style="flex: 1; text-align: center;">
-      <h1><i class="fas fa-code"></i> Code Quality Analyzer</h1>
-      <p><i class="fas fa-brain"></i> AI-Powered Static Code Analysis</p>
-    </div>
-    <div style="width: 50px;"></div>
+  <div class="header">
+    <h1><i class="fas fa-code"></i> Code Quality Analyzer</h1>
+    <p><i class="fas fa-brain"></i> AI-Powered Static Code Analysis</p>
   </div>
   
   <div class="content">
@@ -834,18 +828,6 @@ input[type="text"]:focus {
           <input type="file" id="fileInput" accept=".py,.js,.ts,.java,.cpp,.c,.h,.hpp,.go,.rs,.rb,.php,.swift,.kt,.scala,.pl,.r,.m,.dart,.ex,.hs,.lua,.sh,.ps1,.sql,.html,.css,.xml,.yaml,.yml,.json,.md,.clj,.erl,.fs,.groovy,.jl,.vb,.asm,.f,.f90,.cob,.pas,.sol">
         </div>
         
-        <div class="code-actions">
-          <button type="button" class="btn-action" onclick="loadTemplate()">
-            <i class="fas fa-file-code"></i> Load Template
-          </button>
-          <button type="button" class="btn-action" onclick="clearCode()">
-            <i class="fas fa-eraser"></i> Clear
-          </button>
-          <button type="button" class="btn-action" onclick="formatCode()">
-            <i class="fas fa-indent"></i> Format
-          </button>
-        </div>
-        
         <textarea name="code" id="codeTextarea" rows="18" placeholder="Paste your code here for analysis...">{{ request.form.get('code', '') }}</textarea>
         <div class="char-counter" id="charCounter">0 characters</div>
       </div>
@@ -867,7 +849,12 @@ input[type="text"]:focus {
         </p>
       </div>
       
-      <button type="submit" class="btn-analyze"><i class="fas fa-rocket"></i> Analyze Code</button>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <button type="submit" class="btn-analyze" style="flex: 1; min-width: 200px;"><i class="fas fa-rocket"></i> Analyze Code</button>
+        <button type="button" class="btn-action" onclick="clearCode()" style="padding: 15px 30px; background: #ff6b6b; color: white; border: none; border-radius: 10px; font-size: 1.1em; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(255,107,107,0.3);">
+          <i class="fas fa-trash-alt"></i> Clear Code
+        </button>
+      </div>
     </form>
     
     <div class="loading" id="loading">
@@ -1119,10 +1106,24 @@ const fileInput = document.getElementById('fileInput');
 const fileUploadZone = document.getElementById('fileUploadZone');
 
 function copyFixedCode() {
-  const code = document.getElementById('fixedCode').textContent;
-  navigator.clipboard.writeText(code).then(() => {
-    showToast('Fixed code copied to clipboard!');
-  });
+  const codeElement = document.getElementById('fixedCode');
+  if (codeElement) {
+    const code = codeElement.textContent;
+    navigator.clipboard.writeText(code).then(() => {
+      showToast('Fixed code copied to clipboard!');
+    }).catch(err => {
+      console.error('Failed to copy:', err);
+      showToast('Failed to copy code', 'error');
+    });
+  }
+}
+
+function clearCode() {
+  if (codeTextarea) {
+    codeTextarea.value = '';
+    updateCharCounter();
+    showToast('Code cleared');
+  }
 }
 
 // File upload handling
@@ -1222,29 +1223,6 @@ const codeTemplates = {
   
   r: 'calculate_sum <- function(numbers) {\\n  total <- 0\\n  for (num in numbers) {\\n    total <- total + num\\n  }\\n  return(total)\\n}\\n\\n# Example usage\\nresult <- calculate_sum(c(1, 2, 3, 4, 5))\\nprint(paste(\\\"Sum:\\\", result))'
 };
-
-function loadTemplate() {
-  const langSelector = document.getElementById('langSelect');
-  const lang = langSelector ? langSelector.value : 'python';
-  const template = codeTemplates[lang] || codeTemplates['python'];
-  codeTextarea.value = template;
-  updateCharCounter();
-  showToast('Loaded ' + lang + ' template');
-}
-
-function clearCode() {
-  codeTextarea.value = '';
-  updateCharCounter();
-  showToast('Code cleared');
-}
-
-function formatCode() {
-  // Simple formatting: trim lines and ensure consistent indentation
-  const lines = codeTextarea.value.split('\\n');
-  const formatted = lines.map(line => line.trimEnd()).join('\\n');
-  codeTextarea.value = formatted;
-  showToast('Code formatted');
-}
 
 // Export functions
 function copyResults() {
@@ -1361,12 +1339,6 @@ document.addEventListener('keydown', function(e) {
     document.querySelector('form').submit();
   }
   
-  // Ctrl+L to load template
-  if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
-    e.preventDefault();
-    loadTemplate();
-  }
-  
   // Escape to clear
   if (e.key === 'Escape' && document.activeElement === codeTextarea) {
     clearCode();
@@ -1381,37 +1353,6 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('pre code').forEach((block) => {
     hljs.highlightElement(block);
   });
-});
-
-function toggleTheme() {
-  const html = document.documentElement;
-  const icon = document.getElementById('themeIcon');
-  
-  if (html.classList.contains('dark-mode')) {
-    html.classList.remove('dark-mode');
-    icon.classList.remove('fa-sun');
-    icon.classList.add('fa-moon');
-    localStorage.setItem('theme', 'light');
-  } else {
-    html.classList.add('dark-mode');
-    icon.classList.remove('fa-moon');
-    icon.classList.add('fa-sun');
-    localStorage.setItem('theme', 'dark');
-  }
-}
-
-// Load saved theme
-window.addEventListener('DOMContentLoaded', function() {
-  const savedTheme = localStorage.getItem('theme');
-  const icon = document.getElementById('themeIcon');
-  
-  if (savedTheme === 'dark') {
-    document.documentElement.classList.add('dark-mode');
-    if (icon) {
-      icon.classList.remove('fa-moon');
-      icon.classList.add('fa-sun');
-    }
-  }
 });
 
 </body>
