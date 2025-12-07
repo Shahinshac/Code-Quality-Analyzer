@@ -14,8 +14,8 @@ class UniversalSecurityScanner:
             'message': 'Potential SQL injection vulnerability detected'
         },
         'xss': {
-            'pattern': r'innerHTML|document\.write|eval\(|dangerouslySetInnerHTML',
-            'languages': ['javascript', 'typescript'],
+            'pattern': r'innerHTML|document\.write|eval\(|dangerouslySetInnerHTML|<script[^>]*>.*?<\/script>',
+            'languages': ['javascript', 'typescript', 'html'],
             'severity': 'HIGH',
             'message': 'Potential XSS vulnerability detected'
         },

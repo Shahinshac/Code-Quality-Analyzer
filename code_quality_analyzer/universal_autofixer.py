@@ -57,7 +57,7 @@ class UniversalAutoFixer:
         return code
     
     def _add_missing_semicolons(self, code):
-        if self.language not in ['javascript', 'typescript', 'java', 'cpp', 'csharp']:
+        if self.language not in ['javascript', 'typescript', 'java', 'cpp', 'csharp', 'css']:
             return code
         
         lines = code.split('\n')
@@ -67,7 +67,16 @@ class UniversalAutoFixer:
             stripped = line.strip()
             
             # Add semicolon if missing (simple heuristic)
-            if stripped and not stripped.endswith((';', '{', '}', ':', ',')) and not stripped.startswith(('if', 'for', 'while', 'function', 'class')):
+            if self.language == 'css':
+                # CSS property declarations need semicolons
+                if stripped and ':' in stripped and not stripped.endswith((';', '{', '}')):
+                    line = line.rstrip() + ';'
+                    self.fixes_applied.append({
+                        'type': 'syntax',
+                        'message': 'Added missing semicolon in CSS',
+                        'line': i + 1
+                    })
+            elif stripped and not stripped.endswith((';', '{', '}', ':', ',')) and not stripped.startswith(('if', 'for', 'while', 'function', 'class')):
                 if re.match(r'^\s*(const|let|var|return)\s+', line):
                     line = line.rstrip() + ';'
                     self.fixes_applied.append({

@@ -20,6 +20,8 @@ class UniversalComplexityAnalyzer:
         'swift': r'^\s*(public|private|internal)?\s*func\s+(\w+)\s*\(',
         'kotlin': r'^\s*fun\s+(\w+)\s*\(',
         'scala': r'^\s*def\s+(\w+)\s*\(',
+        'html': r'<script[^>]*>|<style[^>]*>',
+        'css': r'^\s*([.#]?[\w-]+)\s*\{',
     }
     
     CONTROL_FLOW = {
@@ -36,6 +38,8 @@ class UniversalComplexityAnalyzer:
         'swift': ['if', 'else', 'for', 'while', 'switch', 'case', 'guard'],
         'kotlin': ['if', 'else', 'for', 'while', 'when', 'try', 'catch'],
         'scala': ['if', 'else', 'for', 'while', 'match', 'case', 'try', 'catch'],
+        'html': ['script', 'if', 'else', 'for'],
+        'css': ['media', 'supports', 'container'],
     }
     
     def __init__(self, language='python'):

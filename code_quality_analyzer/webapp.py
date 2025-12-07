@@ -787,6 +787,8 @@ input[type="text"]:focus {
           <option value="swift" {% if request.form.get('lang') == 'swift' %}selected{% endif %}>🍎 Swift</option>
           <option value="kotlin" {% if request.form.get('lang') == 'kotlin' %}selected{% endif %}>🎯 Kotlin</option>
           <option value="scala" {% if request.form.get('lang') == 'scala' %}selected{% endif %}>📊 Scala</option>
+          <option value="html" {% if request.form.get('lang') == 'html' %}selected{% endif %}>🌐 HTML</option>
+          <option value="css" {% if request.form.get('lang') == 'css' %}selected{% endif %}>🎨 CSS</option>
         </select>
       </div>
       
@@ -796,8 +798,8 @@ input[type="text"]:focus {
         <div class="file-upload-zone" id="fileUploadZone" onclick="document.getElementById('fileInput').click()">
           <i class="fas fa-cloud-upload-alt"></i>
           <p><strong>Drop a file here or click to upload</strong></p>
-          <p style="font-size: 0.9em; opacity: 0.8;">Supports 13 programming languages with full analysis</p>
-          <input type="file" id="fileInput" accept=".py,.js,.ts,.java,.cpp,.c,.h,.hpp,.go,.rs,.rb,.php,.swift,.kt,.scala">
+          <p style="font-size: 0.9em; opacity: 0.8;">Supports 15 programming languages with full analysis</p>
+          <input type="file" id="fileInput" accept=".py,.js,.ts,.java,.cpp,.c,.h,.hpp,.go,.rs,.rb,.php,.swift,.kt,.scala,.html,.htm,.css">
         </div>
         
         <textarea name="code" id="codeTextarea" rows="18" placeholder="Paste your code here for analysis...">{{ request.form.get('code', '') }}</textarea>
