@@ -770,7 +770,7 @@ input[type="text"]:focus {
     <div class="error">⚠️ {{ error }}</div>
     {% endif %}
     
-    <form method="post" id="analyzeForm">
+    <form method="post" id="analyzeForm" onsubmit="return validateForm()">
       <div class="form-group">
         <label><i class="fas fa-laptop-code"></i> Programming Language</label>
         <select name="lang" id="langSelect" class="language-dropdown">
@@ -824,7 +824,11 @@ input[type="text"]:focus {
         <div class="file-upload-zone" id="fileUploadZone" onclick="document.getElementById('fileInput').click()">
           <i class="fas fa-cloud-upload-alt"></i>
           <p><strong>Drop a file here or click to upload</strong></p>
-          <p style="font-size: 0.9em; opacity: 0.8;">Supports all 40+ programming languages</p>
+          <p style="font-size: 0.9em; opacity: 0.8;">
+            <span style="display: inline-block; padding: 4px 8px; background: #10b981; color: white; border-radius: 4px; font-size: 0.85em; margin-right: 8px;">🟢 Python: Full Support</span>
+            <span style="display: inline-block; padding: 4px 8px; background: #f59e0b; color: white; border-radius: 4px; font-size: 0.85em; margin-right: 8px;">🟡 JS/Java/C++: Partial</span>
+            <span style="display: inline-block; padding: 4px 8px; background: #6b7280; color: white; border-radius: 4px; font-size: 0.85em;">⚪ Others: Basic</span>
+          </p>
           <input type="file" id="fileInput" accept=".py,.js,.ts,.java,.cpp,.c,.h,.hpp,.go,.rs,.rb,.php,.swift,.kt,.scala,.pl,.r,.m,.dart,.ex,.hs,.lua,.sh,.ps1,.sql,.html,.css,.xml,.yaml,.yml,.json,.md,.clj,.erl,.fs,.groovy,.jl,.vb,.asm,.f,.f90,.cob,.pas,.sol">
         </div>
         
@@ -845,7 +849,9 @@ input[type="text"]:focus {
           </label>
         </div>
         <p style="margin-top: 8px; font-size: 0.85em; opacity: 0.7;">
-          <i class="fas fa-rocket"></i> Enterprise-grade analysis: Complexity metrics, security vulnerabilities, and automated fixes
+          <i class="fas fa-rocket"></i> <strong>Advanced features (Auto-Fix, Complexity, Security):</strong> 
+          <span style="color: #10b981;">✓ Python (Full Support)</span> | 
+          <span style="color: #f59e0b;">⚠ Other languages (Coming Soon)</span>
         </p>
       </div>
       
@@ -963,6 +969,16 @@ input[type="text"]:focus {
       <div class="section">
         <h3><i class="fas fa-project-diagram"></i> Complexity Analysis</h3>
         
+        {% if analysis.complexity.error %}
+        <div style="padding: 15px; background: rgba(255,107,107,0.1); border-left: 4px solid #ff6b6b; border-radius: 5px;">
+          <p><i class="fas fa-exclamation-triangle"></i> <strong>Error:</strong> {{ analysis.complexity.error }}</p>
+        </div>
+        {% elif analysis.complexity.info %}
+        <div style="padding: 15px; background: rgba(245,158,11,0.1); border-left: 4px solid #f59e0b; border-radius: 5px;">
+          <p><i class="fas fa-info-circle"></i> {{ analysis.complexity.info }}</p>
+        </div>
+        {% else %}
+        
         {% if analysis.complexity.maintainability %}
         <div style="margin: 15px 0; padding: 15px; background: rgba(102,126,234,0.1); border-left: 4px solid #667eea; border-radius: 5px;">
           <h4 style="margin-bottom: 10px; font-size: 1em;">Maintainability Index</h4>
@@ -1005,10 +1021,21 @@ input[type="text"]:focus {
         {% endif %}
       </div>
       {% endif %}
+      {% endif %}
       
       {% if analysis.security %}
       <div class="section">
         <h3><i class="fas fa-shield-alt"></i> Security Analysis</h3>
+        
+        {% if analysis.security.error %}
+        <div style="padding: 15px; background: rgba(255,107,107,0.1); border-left: 4px solid #ff6b6b; border-radius: 5px;">
+          <p><i class="fas fa-exclamation-triangle"></i> <strong>Error:</strong> {{ analysis.security.error }}</p>
+        </div>
+        {% elif analysis.security.info %}
+        <div style="padding: 15px; background: rgba(245,158,11,0.1); border-left: 4px solid #f59e0b; border-radius: 5px;">
+          <p><i class="fas fa-info-circle"></i> {{ analysis.security.info }}</p>
+        </div>
+        {% else %}
         
         <div style="margin: 15px 0; padding: 15px; background: {% if analysis.security.score >= 80 %}rgba(81,207,102,0.1){% elif analysis.security.score >= 60 %}rgba(255,165,0,0.1){% else %}rgba(255,107,107,0.1){% endif %}; border-left: 4px solid {% if analysis.security.score >= 80 %}#51cf66{% elif analysis.security.score >= 60 %}#ffa500{% else %}#ff6b6b{% endif %}; border-radius: 5px;">
           <div style="font-size: 2em; font-weight: bold;">Security Score: {{ analysis.security.score }}/100</div>
@@ -1050,6 +1077,7 @@ input[type="text"]:focus {
         {% else %}
         <div class="no-issues">✨ No security vulnerabilities detected! ✨</div>
         {% endif %}
+        {% endif %}
       </div>
       {% endif %}
       
@@ -1057,7 +1085,15 @@ input[type="text"]:focus {
       <div class="section">
         <h3><i class="fas fa-magic"></i> Auto-Fix Report</h3>
         
-        {% if analysis.auto_fix.fixes %}
+        {% if analysis.auto_fix.error %}
+        <div style="padding: 15px; background: rgba(255,107,107,0.1); border-left: 4px solid #ff6b6b; border-radius: 5px;">
+          <p><i class="fas fa-exclamation-triangle"></i> <strong>Error:</strong> {{ analysis.auto_fix.error }}</p>
+        </div>
+        {% elif analysis.auto_fix.info %}
+        <div style="padding: 15px; background: rgba(245,158,11,0.1); border-left: 4px solid #f59e0b; border-radius: 5px;">
+          <p><i class="fas fa-info-circle"></i> {{ analysis.auto_fix.info }}</p>
+        </div>
+        {% elif analysis.auto_fix.fixes %}
         <div style="margin: 15px 0; padding: 15px; background: rgba(81,207,102,0.1); border-left: 4px solid #51cf66; border-radius: 5px;">
           <strong>{{ analysis.auto_fix.fixes|length }} fixes applied automatically!</strong>
         </div>
@@ -1124,6 +1160,23 @@ function clearCode() {
     updateCharCounter();
     showToast('Code cleared');
   }
+}
+
+function validateForm() {
+  const code = codeTextarea ? codeTextarea.value.trim() : '';
+  
+  if (!code) {
+    showToast('Please enter some code to analyze', 'error');
+    return false;
+  }
+  
+  // Show loading indicator
+  const loading = document.getElementById('loading');
+  if (loading) {
+    loading.style.display = 'block';
+  }
+  
+  return true;
 }
 
 // File upload handling
@@ -1355,7 +1408,10 @@ document.addEventListener('keydown', function(e) {
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
-  updateCharCounter();
+  // Initialize character counter for pre-filled content
+  if (codeTextarea && codeTextarea.value) {
+    updateCharCounter();
+  }
   
   // Highlight code in results if present
   document.querySelectorAll('pre code').forEach((block) => {
@@ -1431,33 +1487,45 @@ def create_app():
                     if model_path:
                         ml_result = {'error': f'Model file not found: {model_path}'}
                 
-                # NEW: Complexity Analysis (All languages)
+                # NEW: Complexity Analysis (Python only)
                 complexity_data = None
-                try:
-                    complexity_analyzer = ComplexityAnalyzer()
-                    complexity_data = complexity_analyzer.analyze(code)
-                except Exception as e:
-                    app.logger.error(f'Complexity analysis error: {e}')
+                if lang.lower() == 'python':
+                    try:
+                        complexity_analyzer = ComplexityAnalyzer()
+                        complexity_data = complexity_analyzer.analyze(code)
+                    except Exception as e:
+                        app.logger.error(f'Complexity analysis error: {e}')
+                        complexity_data = {'error': f'Complexity analysis failed: {str(e)}'}
+                else:
+                    complexity_data = {'info': f'Complexity analysis is currently available for Python only. {lang} support coming soon.'}
                 
-                # NEW: Security Scan (All languages)
+                # NEW: Security Scan (Python only)
                 security_data = None
                 if enable_security:
-                    try:
-                        security_scanner = SecurityScanner()
-                        security_data = security_scanner.scan(code)
-                    except Exception as e:
-                        app.logger.error(f'Security scan error: {e}')
+                    if lang.lower() == 'python':
+                        try:
+                            security_scanner = SecurityScanner()
+                            security_data = security_scanner.scan(code)
+                        except Exception as e:
+                            app.logger.error(f'Security scan error: {e}')
+                            security_data = {'error': f'Security scan failed: {str(e)}', 'vulnerabilities': []}
+                    else:
+                        security_data = {'info': f'Security scanning is currently available for Python only. {lang} support coming soon.', 'vulnerabilities': []}
                 
-                # NEW: Auto-fix suggestions (All languages)
+                # NEW: Auto-fix suggestions (Python only)
                 fixed_code = None
                 auto_fix_report = None
                 if enable_autofix:
-                    try:
-                        auto_fixer = CodeAutoFixer()
-                        fixed_code, fixes = auto_fixer.fix_all(code)
-                        auto_fix_report = {'fixed_code': fixed_code, 'fixes': fixes}
-                    except Exception as e:
-                        app.logger.error(f'Auto-fix error: {e}')
+                    if lang.lower() == 'python':
+                        try:
+                            auto_fixer = CodeAutoFixer()
+                            fixed_code, fixes = auto_fixer.fix_all(code)
+                            auto_fix_report = {'fixed_code': fixed_code, 'fixes': fixes}
+                        except Exception as e:
+                            app.logger.error(f'Auto-fix error: {e}')
+                            auto_fix_report = {'error': f'Auto-fix failed: {str(e)}', 'fixes': []}
+                    else:
+                        auto_fix_report = {'info': f'Auto-fix is currently available for Python only. {lang} support coming soon.', 'fixes': []}
                 
                 # NEW: Enhanced Quality Score
                 quality_scorer = QualityScorer()

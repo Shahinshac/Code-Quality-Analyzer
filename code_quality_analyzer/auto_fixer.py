@@ -72,16 +72,40 @@ class CodeAutoFixer:
                         docstring_indent = indent + '    '
                         
                         if isinstance(node, ast.FunctionDef):
-                            # Get function signature
-                            args = [arg.arg for arg in node.args.args]
-                            docstring = f'{docstring_indent}"""{node.name} function'
+                            # Get function signature with type hints
+                            args = []
+                            for arg in node.args.args:
+                                arg_name = arg.arg
+                                arg_type = 'Any'
+                                if arg.annotation:
+                                    arg_type = ast.unparse(arg.annotation) if hasattr(ast, 'unparse') else 'type'
+                                args.append((arg_name, arg_type))
+                            
+                            # Generate intelligent docstring
+                            docstring = f'{docstring_indent}"""{node.name}\n{docstring_indent}\n{docstring_indent}Description: '
+                            # Infer purpose from function name
+                            name_parts = node.name.replace('_', ' ').split()
+                            if name_parts:
+                                docstring += f'{" ".join(name_parts).capitalize()}\n{docstring_indent}'
+                            
                             if args:
-                                docstring += f'\n{docstring_indent}\n{docstring_indent}Args:\n'
-                                for arg in args:
-                                    docstring += f'{docstring_indent}    {arg}: TODO\n'
+                                docstring += f'\n{docstring_indent}Args:\n'
+                                for arg_name, arg_type in args:
+                                    docstring += f'{docstring_indent}    {arg_name} ({arg_type}): Parameter for {arg_name}\n'
+                            
+                            # Add return type if available
+                            if node.returns:
+                                return_type = ast.unparse(node.returns) if hasattr(ast, 'unparse') else 'type'
+                                docstring += f'{docstring_indent}\n{docstring_indent}Returns:\n{docstring_indent}    {return_type}: Function return value\n'
+                            
                             docstring += f'{docstring_indent}"""'
                         else:
-                            docstring = f'{docstring_indent}"""{node.name} class"""'
+                            # Generate class docstring
+                            docstring = f'{docstring_indent}"""{node.name}\n{docstring_indent}\n{docstring_indent}Description: '
+                            name_parts = node.name.replace('_', ' ').split()
+                            if name_parts:
+                                docstring += f'{" ".join(name_parts).capitalize()} class'
+                            docstring += f'\n{docstring_indent}"""'
                         
                         insertions.append((node.lineno, docstring))
                         self.fixes_applied.append({
