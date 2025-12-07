@@ -787,34 +787,6 @@ input[type="text"]:focus {
           <option value="swift" {% if request.form.get('lang') == 'swift' %}selected{% endif %}>🍎 Swift</option>
           <option value="kotlin" {% if request.form.get('lang') == 'kotlin' %}selected{% endif %}>🎯 Kotlin</option>
           <option value="scala" {% if request.form.get('lang') == 'scala' %}selected{% endif %}>📊 Scala</option>
-          <option value="perl" {% if request.form.get('lang') == 'perl' %}selected{% endif %}>🐪 Perl</option>
-          <option value="r" {% if request.form.get('lang') == 'r' %}selected{% endif %}>📈 R</option>
-          <option value="matlab" {% if request.form.get('lang') == 'matlab' %}selected{% endif %}>🧮 MATLAB</option>
-          <option value="dart" {% if request.form.get('lang') == 'dart' %}selected{% endif %}>🎯 Dart</option>
-          <option value="elixir" {% if request.form.get('lang') == 'elixir' %}selected{% endif %}>💧 Elixir</option>
-          <option value="haskell" {% if request.form.get('lang') == 'haskell' %}selected{% endif %}>λ Haskell</option>
-          <option value="lua" {% if request.form.get('lang') == 'lua' %}selected{% endif %}>🌙 Lua</option>
-          <option value="shell" {% if request.form.get('lang') == 'shell' %}selected{% endif %}>🐚 Shell</option>
-          <option value="powershell" {% if request.form.get('lang') == 'powershell' %}selected{% endif %}>⚙️ PowerShell</option>
-          <option value="sql" {% if request.form.get('lang') == 'sql' %}selected{% endif %}>🗄️ SQL</option>
-          <option value="html" {% if request.form.get('lang') == 'html' %}selected{% endif %}>🌐 HTML</option>
-          <option value="css" {% if request.form.get('lang') == 'css' %}selected{% endif %}>🎨 CSS</option>
-          <option value="xml" {% if request.form.get('lang') == 'xml' %}selected{% endif %}>📋 XML</option>
-          <option value="yaml" {% if request.form.get('lang') == 'yaml' %}selected{% endif %}>📄 YAML</option>
-          <option value="json" {% if request.form.get('lang') == 'json' %}selected{% endif %}>📦 JSON</option>
-          <option value="markdown" {% if request.form.get('lang') == 'markdown' %}selected{% endif %}>📝 Markdown</option>
-          <option value="clojure" {% if request.form.get('lang') == 'clojure' %}selected{% endif %}>🔮 Clojure</option>
-          <option value="erlang" {% if request.form.get('lang') == 'erlang' %}selected{% endif %}>📡 Erlang</option>
-          <option value="fsharp" {% if request.form.get('lang') == 'fsharp' %}selected{% endif %}>🔶 F#</option>
-          <option value="groovy" {% if request.form.get('lang') == 'groovy' %}selected{% endif %}>🎵 Groovy</option>
-          <option value="julia" {% if request.form.get('lang') == 'julia' %}selected{% endif %}>🔬 Julia</option>
-          <option value="objectivec" {% if request.form.get('lang') == 'objectivec' %}selected{% endif %}>🍏 Objective-C</option>
-          <option value="vb" {% if request.form.get('lang') == 'vb' %}selected{% endif %}>📘 Visual Basic</option>
-          <option value="assembly" {% if request.form.get('lang') == 'assembly' %}selected{% endif %}>⚙️ Assembly</option>
-          <option value="fortran" {% if request.form.get('lang') == 'fortran' %}selected{% endif %}>🔢 Fortran</option>
-          <option value="cobol" {% if request.form.get('lang') == 'cobol' %}selected{% endif %}>💼 COBOL</option>
-          <option value="pascal" {% if request.form.get('lang') == 'pascal' %}selected{% endif %}>🎓 Pascal</option>
-          <option value="solidity" {% if request.form.get('lang') == 'solidity' %}selected{% endif %}>⛓️ Solidity</option>
         </select>
       </div>
       
@@ -824,12 +796,8 @@ input[type="text"]:focus {
         <div class="file-upload-zone" id="fileUploadZone" onclick="document.getElementById('fileInput').click()">
           <i class="fas fa-cloud-upload-alt"></i>
           <p><strong>Drop a file here or click to upload</strong></p>
-          <p style="font-size: 0.9em; opacity: 0.8;">
-            <span style="display: inline-block; padding: 4px 8px; background: #10b981; color: white; border-radius: 4px; font-size: 0.85em; margin-right: 8px;">🟢 Python: Full Support</span>
-            <span style="display: inline-block; padding: 4px 8px; background: #f59e0b; color: white; border-radius: 4px; font-size: 0.85em; margin-right: 8px;">🟡 JS/Java/C++: Partial</span>
-            <span style="display: inline-block; padding: 4px 8px; background: #6b7280; color: white; border-radius: 4px; font-size: 0.85em;">⚪ Others: Basic</span>
-          </p>
-          <input type="file" id="fileInput" accept=".py,.js,.ts,.java,.cpp,.c,.h,.hpp,.go,.rs,.rb,.php,.swift,.kt,.scala,.pl,.r,.m,.dart,.ex,.hs,.lua,.sh,.ps1,.sql,.html,.css,.xml,.yaml,.yml,.json,.md,.clj,.erl,.fs,.groovy,.jl,.vb,.asm,.f,.f90,.cob,.pas,.sol">
+          <p style="font-size: 0.9em; opacity: 0.8;">Supports 13 programming languages with full analysis</p>
+          <input type="file" id="fileInput" accept=".py,.js,.ts,.java,.cpp,.c,.h,.hpp,.go,.rs,.rb,.php,.swift,.kt,.scala">
         </div>
         
         <textarea name="code" id="codeTextarea" rows="18" placeholder="Paste your code here for analysis...">{{ request.form.get('code', '') }}</textarea>
@@ -849,9 +817,7 @@ input[type="text"]:focus {
           </label>
         </div>
         <p style="margin-top: 8px; font-size: 0.85em; opacity: 0.7;">
-          <i class="fas fa-rocket"></i> <strong>Advanced features (Auto-Fix, Complexity, Security):</strong> 
-          <span style="color: #10b981;">✓ Python (Full Support)</span> | 
-          <span style="color: #f59e0b;">⚠ Other languages (Coming Soon)</span>
+          <i class="fas fa-rocket"></i> Enterprise-grade analysis: Complexity metrics, security vulnerabilities, and automated fixes for all supported languages
         </p>
       </div>
       
@@ -1487,45 +1453,39 @@ def create_app():
                     if model_path:
                         ml_result = {'error': f'Model file not found: {model_path}'}
                 
-                # NEW: Complexity Analysis (Python only)
+                # NEW: Complexity Analysis (All languages)
                 complexity_data = None
-                if lang.lower() == 'python':
-                    try:
-                        complexity_analyzer = ComplexityAnalyzer()
-                        complexity_data = complexity_analyzer.analyze(code)
-                    except Exception as e:
-                        app.logger.error(f'Complexity analysis error: {e}')
-                        complexity_data = {'error': f'Complexity analysis failed: {str(e)}'}
-                else:
-                    complexity_data = {'info': f'Complexity analysis is currently available for Python only. {lang} support coming soon.'}
+                try:
+                    from .universal_complexity import UniversalComplexityAnalyzer
+                    complexity_analyzer = UniversalComplexityAnalyzer(language=lang)
+                    complexity_data = complexity_analyzer.analyze(code)
+                except Exception as e:
+                    app.logger.error(f'Complexity analysis error: {e}')
+                    complexity_data = {'error': f'Complexity analysis failed: {str(e)}'}
                 
-                # NEW: Security Scan (Python only)
+                # NEW: Security Scan (All languages)
                 security_data = None
                 if enable_security:
-                    if lang.lower() == 'python':
-                        try:
-                            security_scanner = SecurityScanner()
-                            security_data = security_scanner.scan(code)
-                        except Exception as e:
-                            app.logger.error(f'Security scan error: {e}')
-                            security_data = {'error': f'Security scan failed: {str(e)}', 'vulnerabilities': []}
-                    else:
-                        security_data = {'info': f'Security scanning is currently available for Python only. {lang} support coming soon.', 'vulnerabilities': []}
+                    try:
+                        from .universal_security import UniversalSecurityScanner
+                        security_scanner = UniversalSecurityScanner(language=lang)
+                        security_data = security_scanner.scan(code)
+                    except Exception as e:
+                        app.logger.error(f'Security scan error: {e}')
+                        security_data = {'error': f'Security scan failed: {str(e)}', 'vulnerabilities': []}
                 
-                # NEW: Auto-fix suggestions (Python only)
+                # NEW: Auto-fix suggestions (All languages)
                 fixed_code = None
                 auto_fix_report = None
                 if enable_autofix:
-                    if lang.lower() == 'python':
-                        try:
-                            auto_fixer = CodeAutoFixer()
-                            fixed_code, fixes = auto_fixer.fix_all(code)
-                            auto_fix_report = {'fixed_code': fixed_code, 'fixes': fixes}
-                        except Exception as e:
-                            app.logger.error(f'Auto-fix error: {e}')
-                            auto_fix_report = {'error': f'Auto-fix failed: {str(e)}', 'fixes': []}
-                    else:
-                        auto_fix_report = {'info': f'Auto-fix is currently available for Python only. {lang} support coming soon.', 'fixes': []}
+                    try:
+                        from .universal_autofixer import UniversalAutoFixer
+                        auto_fixer = UniversalAutoFixer(language=lang)
+                        fixed_code, fixes = auto_fixer.fix_all(code)
+                        auto_fix_report = {'fixed_code': fixed_code, 'fixes': fixes}
+                    except Exception as e:
+                        app.logger.error(f'Auto-fix error: {e}')
+                        auto_fix_report = {'error': f'Auto-fix failed: {str(e)}', 'fixes': []}
                 
                 # NEW: Enhanced Quality Score
                 quality_scorer = QualityScorer()
